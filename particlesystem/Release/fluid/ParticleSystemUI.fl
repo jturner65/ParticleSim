@@ -1,0 +1,81 @@
+# data file for the FLTK User Interface Designer (FLUID)
+version 2.1000 
+images_dir header_name 
+header_name {.h} 
+code_name {.cpp} 
+gridx 5 
+gridy 5 
+snap 3
+decl {\#include <vector>} {public
+} 
+
+decl {\#include <fstream>} {public
+} 
+
+decl {\#include <fltk/xpmImage.h>} {} 
+
+decl {\#include "UICallback.h"} {public
+} 
+
+decl {\#include "WindowGLDisplay.h"} {} 
+
+decl {\#include "ControlPanel.h"} {} 
+
+decl {class WindowGLDisplay;} {public
+} 
+
+decl {class ControlPanel;} {public
+} 
+
+class ParticleSystemUI {open
+} {
+  decl {ControlPanel *mControl} {public
+  }
+  Function {ParticleSystemUI()} {open selected
+  } {
+    {fltk::Window} mFLWindow {
+      label RBMocap open
+      xywh {701 281 649 665} type Double horizontal resizable box PLASTIC_UP_BOX labelfont 1 visible
+    } {
+      {fltk::Group} mControlGrp {open
+        xywh {3 560 640 105}
+      } {}
+      {fltk::Group} {} {
+        label {Menu Button} open
+        xywh {3 35 640 47} align 0 labeltype NO_LABEL
+        extra_code {o->resizable(NULL);}
+      } {
+        {fltk::Button} mRecordMotion_but {
+          tooltip {Record motion}
+          xywh {2 2 35 35} type TOGGLE box PLASTIC_UP_BOX buttonbox PLASTIC_UP_BOX
+          image {./icons/record.gif} color 7 selection_color 0x8099ff00 selection_textcolor 56
+        }
+        {fltk::Button} mStillShot_but {
+          callback {StillShot_cb(o, v);}
+          tooltip {Still shot}
+          xywh {42 2 35 35} box PLASTIC_UP_BOX buttonbox PLASTIC_UP_BOX
+          image {./icons/camera1.gif} color 7 selection_color 0x8099ff00 selection_textcolor 56
+        }
+        {fltk::Button} mSim_but {
+          callback {Sim_cb(o, v);}
+          tooltip {Simulation mode}
+          xywh {82 2 35 35} type TOGGLE box PLASTIC_UP_BOX buttonbox PLASTIC_UP_BOX
+          image {./icons/spacetime-1.gif} color 7 selection_color 0x8099ff00 selection_textcolor 56
+        }
+      }
+      {fltk::InvisibleBox} mGLWindow {
+        xywh {3 78 640 480} resizable box THIN_DOWN_BOX
+        class WindowGLDisplay
+      }
+    }
+    code {mControl = new ControlPanel();
+mControl->mControlWindow->position(0,0);
+mControlGrp->add(mControl->mControlWindow);} {}
+  }
+  Function {Show()} {open
+  } {
+    code {mFLWindow->show();
+mGLWindow->show();
+mControlGrp->show();} {}
+  }
+} 

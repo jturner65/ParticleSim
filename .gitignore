@@ -1,0 +1,8 @@
+*.obj
+*.tlog
+*.lastbuildstate
+*.exe
+*.ilk
+*.log
+*.pdb
+*.tga

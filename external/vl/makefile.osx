@@ -1,0 +1,46 @@
+CPP = /usr/bin/g++
+CPPFLAGS_DEBUG = -fno-rtti -g -DDEBUG -DCYGWIN
+CPPFLAGS_RELEASE = -fno-rtti -O3 -DCYGWIN
+AR = ar
+RANLIB = ranlib
+
+LIB_DIR = ./lib
+RELEASE_DIR = ./Release
+DEBUG_DIR = ./Debug
+
+RELEASE_LIB = $(LIB_DIR)/vl.a
+DEBUG_LIB = $(LIB_DIR)/vld.a
+
+OBJS = \
+	Basics.o \
+	LibVLd.o \
+	$(NULL)
+
+IDIRS = -Iinclude
+LDIRS =
+LIBS = 
+
+.SUFFIXES: .o .cpp
+
+RELEASE_OBJS := $(foreach f,$(OBJS),$(RELEASE_DIR)/$(patsubst %.cpp,%.o,$(f)))
+
+DEBUG_OBJS := $(foreach f,$(OBJS),$(DEBUG_DIR)/$(patsubst %.cpp,%.o,$(f)))
+
+$(RELEASE_DIR)/%.o: src/%.cpp 
+	$(CPP) $(CPPFLAGS_RELEASE) $(IDIRS) -c -o $@ $<
+
+$(DEBUG_DIR)/%.o: src/%.cpp 
+	$(CPP) $(CPPFLAGS_DEBUG) $(IDIRS) -c -o $@ $<
+
+all: release debug
+
+debug:  $(DEBUG_OBJS)
+	$(AR) cr $(DEBUG_LIB) $(DEBUG_OBJS)
+	$(RANLIB) $(DEBUG_LIB)
+
+release: $(RELEASE_OBJS)
+	 $(AR) cr $(RELEASE_LIB) $(RELEASE_OBJS)
+	 $(RANLIB) $(RELEASE_LIB)
+
+clean:
+	rm -f $(DEBUG_LIB) $(RELEASE_LIB) $(RELEASE_OBJS) $(DEBUG_OBJS)
