@@ -509,31 +509,7 @@ namespace particleSystem{
 		return kp;
 	}//calcAndApplyAnkleForce
 
-	//void mySystem::invokeSolverDerivEval() {
-	//	//can use any solver, since every solver has access to all algorithms implemented
-	//	vector<Eigen::Vector3d> tmpStateVec(4, Eigen::Vector3d(0, 0, 0));
-	//	vector<Eigen::Vector3d> tmpStateDotVec(4, Eigen::Vector3d(0, 0, 0));
-	//	vector<Eigen::Vector3d> tmpNextStateVec(4, Eigen::Vector3d(0, 0, 0));
-	//	int numParts = p.size();
-	//	//int solverTypeToUse = (usePartSolver ? p[idx]->solveType : solveType);
-	//	for (int idx = 0; idx < numParts; ++idx) {
-	//		tmpStateVec[0] = p[idx]->position[0];
-	//		tmpStateVec[1] = p[idx]->velocity[0];
-	//		tmpStateVec[2] = p[idx]->oldPos[0];
-	//		tmpStateVec[3] = p[idx]->oldVel[0];
 
-	//		tmpStateDotVec[0] = tmpStateVec[1];
-	//		tmpStateDotVec[1] = p[idx]->forceAcc[0] / p[idx]->mass;
-	//		tmpStateDotVec[2] = tmpStateVec[3];
-	//		tmpStateDotVec[3] = p[idx]->oldForceAcc[0] / p[idx]->mass;
-	//		solver->lambda = idx + 1;                      //lambda only used for RK4_G general form rk4, should not be 0
-
-	//		tmpNextStateVec = solver->IntegratorEvalPerPart(deltaT, p[idx]->solveType, tmpStateVec, tmpStateDotVec);
-
-	//		p[idx]->advance(tmpNextStateVec[0], tmpNextStateVec[1], Eigen::Vector3d(0, 0, 0));        //clears forces from force acc
-	//	}//for each particle
-	//	solver->lambda = 2;//default value for RK4_G
-	//}
 	void mySystem::invokeSolverDerivEval() {
 		//can use any solver, since every solver has access to all algorithms implemented
 		vector<Eigen::Vector3d> tmpStateVec(4, Eigen::Vector3d(0, 0, 0));
@@ -553,8 +529,8 @@ namespace particleSystem{
 			tmpStateDotVec[3] = p[idx]->oldForceAcc[0] / p[idx]->mass;
 			p[idx]->solver->lambda = idx + 1;                      //lambda only used for RK4_G general form rk4, should not be 0
 
-																   //tmpNextStateVec = solver->IntegratorEvalPerPart(deltaT, p[idx]->solveType, tmpStateVec, tmpStateDotVec);
 			tmpNextStateVec = p[idx]->solver->Integrate(deltaT, tmpStateVec, tmpStateDotVec);
+			//tmpNextStateVec = p[idx]->solver->(*integrator)(deltaT, tmpStateVec, tmpStateDotVec);
 			p[idx]->solver->lambda = 2;
 			p[idx]->advance(tmpNextStateVec[0], tmpNextStateVec[1], Eigen::Vector3d(0, 0, 0));        //clears forces from force acc
 		}//for each particle
