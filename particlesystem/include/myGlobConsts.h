@@ -28,8 +28,6 @@ namespace particleSystem{
 	static const int CONJGRAD_MAXITERS = 30;
 	static const int  numPosCnstIters = 300;     //# of iterations for position constraint satisfaction
 
-	static const int numCurrSystems = 12;
-
 
 	/** Helper types for STL containers with fixed size Eigen memory allocators - from MRPT. */
 	//template <class TYPE1, class TYPE2 = TYPE1>
@@ -45,22 +43,26 @@ namespace particleSystem{
 	};
 
 
-
-	    
     //10 when inv pend working      //number of scenes - 0:galileo, 1:snowglobe, 2:single constraint, 3:clacker, 4:4 circles, 5:4 circle jump-tracks, 6: 4 part inverted pendulum, 7:9 bead-on-wires with varying integrators, 8 : 9 bead on wires with varying lambda rk4 gen, 9 : seaweed field
-	//part3 defines
 
 	//particle - has current values for position, velocity and forceAcc in idx 0 of appropriate deques
 	enum ForceType {F_NONE, S_SCALAR, S_VECTOR, ATTR, REPL, DAMPSPRING, DSPR_THETABAR};
 	static const char* ForceType2str[] = {"None", "Gravity-type force (scalar particle quantity)", "Air Drag-type force (vector particle quantity)", "Attractor", "Repulsor", "Damped Spring", "Force back to ThetaBar"};
+
 	enum ConstraintType {C_NONE, C_Circular};
 	static const char* ConstraintType2str[] = {"None", "Circular/Bar-type constraint"};
+
 	enum CollisionType {CL_NONE, FLAT, PARTICLE, SPHERE};
 	static const char* CollisionType2str[] = {"None", "Flat surface", "Particle to particle", "Inside sphere"};
+
 	enum SolverType {GROUND, EXP_E, MIDPOINT, RK3, RK4, IMP_E, TRAP, VERLET, RK4_G};
 	static const char* SolverType2str[] = {"Ground_Truth", "Explicit_Euler", "Midpoint", "RK3", "RK4", "Implicit_Euler", "Trapezoidal", "Verlet", "Gen_RK4"};
-	enum SceneType {BALL_DROP, SNOW_GLOBE, CNSTR_1, NEWT_CRDL, CNSTR_4,CNSTR_4_JMP, INV_PEND, SOVLER_9, RK4_LAM_9, SEAWEED, MSPR_MTN_PROJ,MSPR_MTN_PRO2};
-    static const char* SceneType2str[] = {"Ball Drop", "Snow Globe", "1 Initial Constraint", "Newton's Cradle", "4 Init Constraints", "4 Cnstr Indy Jones", "Inverted Pendulum", "9 Solvers", "RK4 Gen Form Comp", "Seaweed", "Mass Spring RT", "Mass Spring 2" };
+
+	enum SceneType {BALL_DROP, SNOW_GLOBE, MPM_FLUID, CNSTR_1, NEWT_CRDL, CNSTR_4,CNSTR_4_JMP, INV_PEND, SOVLER_9, RK4_LAM_9, SEAWEED, MSPR_MTN_PROJ,MSPR_MTN_PRO2};
+    static const char* SceneType2str[] = {"Ball Drop", "Snow Globe", "MPM Fluid", "1 Initial Constraint", "Newton's Cradle", "4 Init Constraints", "4 Cnstr Indy Jones", "Inverted Pendulum", "9 Solvers", "RK4 Gen Form Comp", "Seaweed", "Mass Spring RT", "Mass Spring 2" };
+
+	static const int numCurrSystems = 13;
+
 	static const Eigen::Vector3d gravVec = Eigen::Vector3d(0, -9.8, 0);		//used in ground truth eval
 
     static const int numSolvers =  9; //number of numeric solvers uses for simulation of falling particles : 9 + none

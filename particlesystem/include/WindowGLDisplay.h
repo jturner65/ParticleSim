@@ -46,11 +46,11 @@ public:
 	void draw();
 	int FindPartIDXByID(vector<std::shared_ptr<myParticle>>& partAra, int id);
 	int FindCnstrntIDXByID(vector<std::shared_ptr<myConstraint>>& cnstrntAra, int id);
-	void drawFluidVel(int currFrame, int gCurrentScene, shared_ptr<mySystem> system);
-	void drawParts(int currFrame, vector<std::shared_ptr<particleSystem::myParticle>>& partAra, double calc_partSize, double d_partSize, bool draw1stPartBlue, bool BiggerPlayBackParts);
+	void drawFluidVel( shared_ptr<mySystem> system);
+	void drawParts(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, double calc_partSize, double d_partSize, bool draw1stPartBlue);
 	void drawCnstrntLine(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra, vector<vector<int>>& linePointIDS, bool bindCnstr, double cnstrR);	
-	void drawCnstrnt(int currFrame, int gCurrentScene, vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra);
-	void drawSpring(int currFrame, int gCurrentScene, vector<std::shared_ptr<particleSystem::mySpring>>& springAra);
+	void drawCnstrnt(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra);
+	void drawSpring(vector<std::shared_ptr<particleSystem::mySpring>>& springAra);
 	void render();
 	int handle(int event);
 	void refresh();

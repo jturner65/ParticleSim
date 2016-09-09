@@ -311,17 +311,17 @@ namespace particleSystem{
 	}
 
 	//x,y,z are edge bounds of flat collider at specific y location
-	void mySystem::buildGndCollider(double kRest, double muFrict, double x, double y, double z, std::string& name, const Eigen::Vector3d& drLoc, const Eigen::Vector3d& gndLoc) {
+	void mySystem::buildGndCollider(double kRest, double muFrict, double x, double y, double z, std::string& name, const Eigen::Vector3d& drawLoc){//, const Eigen::Vector3d& gndLoc) {
 		vector<Eigen::Vector3d> tmpVec(4, Eigen::Vector3d(0, 0, 0));
 		tmpVec[0] = Eigen::Vector3d(-x, y, 0);
 		tmpVec[1] = Eigen::Vector3d(x, y, 0);
 		tmpVec[2] = Eigen::Vector3d(0, y, -z);
 		tmpVec[3] = Eigen::Vector3d(0, y, z);
 		myCollider::ID_gen = colliders.size();
-		colliders.push_back(std::make_shared<myCollider>(name, drLoc, tmpVec, false));
+		colliders.push_back(std::make_shared<myCollider>(name, drawLoc, tmpVec, false));
 		colliders.back()->Krest = kRest;
 		colliders.back()->muFrict = muFrict;        //friction force
-		ground = gndLoc;
+	//	ground = gndLoc;
 	}
 
 	void mySystem::buildGlobeCollider(double krest, double muFrict, double rad, double distFromGlb) {

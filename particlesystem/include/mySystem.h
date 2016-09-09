@@ -91,7 +91,7 @@ namespace particleSystem{
 		//void buildRhTrHdrn(Eigen::Vector3d& sLoc); //rhombic triacontahedron (30 sided die) - for mass spring motion project
 		//void buildMsSprMtn2(Eigen::Vector3d& sLoc); //some other mass-spring object
 		//void buildFlatCollider(double krest, double muFrict, double x, double y, double z, const Eigen::Vector3d&std::string& name, const Eigen::Vector3d& drLoc, const Eigen::Vector3d& gndLoc);
-		void buildGndCollider(double krest, double muFrict, double x, double y, double z, std::string& name, const Eigen::Vector3d& drLoc, const Eigen::Vector3d& gndLoc);
+		void buildGndCollider(double krest, double muFrict, double x, double y, double z, std::string& name, const Eigen::Vector3d& drLoc);// , const Eigen::Vector3d& gndLoc);
 		void buildGlobeCollider(double krest, double muFrict, double rad, double distFromGlb);
 
 		void buildDefForces(std::string& name, double kd);
@@ -186,7 +186,7 @@ namespace particleSystem{
 			bool res = msDragged;
 			//constrained tinker toy code here
 			applyForcesToSystem();
-			if (hasFluidGlobe) {
+			if (hasFluidGlobe) {	//inv pend within fluid
 				if ((res) || ((shakeVal).norm() > 0.001)) {
 					addShakeForceToFluid(fmult, msDragVal0, msDragVal1); 		res = false;			//setting false keeps force from compounding
 				}
@@ -198,7 +198,7 @@ namespace particleSystem{
 				handlePartCldrCollision();//checks for, and handles, collisions for all particles to see if they hit the ground
 				handlePartPartCollision();
 			}
-			else {//#INV_PEND            
+			else {//#INV_PEND    - no fluid just add force        
 				if (msDragged) {
 					Eigen::Vector3d msDiff = msDragVal0 - msDragVal1;
 					addForcesToTinkerToys(fmult, msDragged, msDiff);
@@ -214,7 +214,7 @@ namespace particleSystem{
 			buildCnstrntStruct(jumpCnstrnt);									//handle constraints here - rebuild constraint structure			
 			calcConstraintForces();												//handle constraints here - calculate constraint forces and matrices		
 			applyConstraintForcesToSystem();									//handle collisions from contraint enforcement
-			if (calcCOM) { partCOM = calcAndSetCOM(0, p.size()); }				//derive COM val if only 1 inv pend			
+			if (calcCOM) { partCOM = calcAndSetCOM(0, p.size()); }				//derive COM val if only 1 inv pend			 TODO find this for all inv pend in seaweed
 			invokeSolverDerivEval();											//invoke derivative handler
 
 			return res;
@@ -268,7 +268,7 @@ namespace particleSystem{
 		int ID;
 		string name;
 
-		Eigen::Vector3d ground;
+		//Eigen::Vector3d ground;
 		Eigen::Vector3d shakeVal;
 		Eigen::Vector3d partCOM;
 

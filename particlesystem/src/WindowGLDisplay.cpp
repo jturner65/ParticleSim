@@ -29,7 +29,7 @@ void LightInit()
 	static float front_mat_diffuse[]   = {0.5f, 0.28f, 0.38f, 1.0f};
 	static float lmodel_ambient[]      = {0.2f, 0.2f,  0.2f,  1.0f};
 	static float lmodel_twoside[]      = {GL_FALSE};
-	if (1 == gCurrentScene) {
+	if ((SNOW_GLOBE == gCurrentScene) || (MPM_FLUID == gCurrentScene) ){
 		ambient[0] = 0.8f; ambient[1] = 0.8f; ambient[2] = 0.8f; 
 		diffuse[0] = 1.0f; diffuse[1] = 1.0f; diffuse[2] = 1.0f;
 
@@ -65,8 +65,11 @@ void LightInit()
 
 void inits(void){
 	//glClearColor(242.0f / 255, 247.0f / 255, 1.0f, 1.0f);
-	if (1 == gCurrentScene) {
+	if (SNOW_GLOBE == gCurrentScene) {
 		glClearColor(0, 0, 0, 1.0f);
+	}
+	else if (MPM_FLUID == gCurrentScene) {
+		glClearColor(0, 0, .2f, 1.0f);
 	}
 	else {
 		glClearColor(242.0f / 255, 247.0f / 255, 1.0f, 1.0f);
@@ -139,7 +142,7 @@ void WindowGLDisplay::render()
 	}
 	glEnable( GL_LIGHTING );
 
-	glTranslated(mFixedTrans[0] / 30.0, mFixedTrans[1] / 30, mFixedTrans[2] / 10);
+	glTranslated(mFixedTrans[0] / 30.0, mFixedTrans[1] / 30, mFixedTrans[2] / 10);			//moving camera around. YUCK bad template code bad.
 
 	// curr frame to be displayed
 	unsigned int currFrame = mUI->mControl->getCurrentFrame();
@@ -157,41 +160,33 @@ void WindowGLDisplay::render()
 	partAra = MyParticleWorld::systemParticleHolder[gCurrentScene][stIdx];
 	if (currFrame<MyParticleWorld::systemConstraintHolder[gCurrentScene].size()) { cnstrntAra = MyParticleWorld::systemConstraintHolder[gCurrentScene][stIdx]; }
 	if (currFrame<MyParticleWorld::systemSpringHolder[gCurrentScene].size()) { springAra = MyParticleWorld::systemSpringHolder[gCurrentScene][stIdx]; }
-	double partRadDraw = (partRad);
-    //draw scene-specific stuff
-    if((0==gCurrentScene) || (6==gCurrentScene) || (9==gCurrentScene) || (10 == gCurrentScene)|| (11 == gCurrentScene)){
-		
-		glPushMatrix();//draw ground
-			glColor4d(0.3, 0.7, 0.7, 0.1);
-			glTranslated(0, -13 - partRadDraw, -12);
-			glScalef(5,1,5);
-			glutSolidCube(10); //ground
-		glPopMatrix();
-    } else if (1==gCurrentScene){
-		partRadDraw *= .5;
-		if (mPicking == true){	glColor4d(0.0f, 1.0f, 1.0f, .3f);	}
-		else glColor4d(0.0f, 1.0f, 1.0f, .3f);
-		glPushMatrix();//draw ground
-			glColor4d(0.3, 0.7, 0.7, 0.1);
-			glTranslated(MyParticleWorld::systems[gCurrentScene]->colliders[0]->drawLoc(0), 1.01*MyParticleWorld::systems[gCurrentScene]->colliders[0]->drawLoc(1), MyParticleWorld::systems[gCurrentScene]->colliders[0]->drawLoc(2));
-			glScalef(5, .001, 5);
-			glutSolidCube(10); //ground
-		glPopMatrix();
+	double partRadDraw = (partRad), gndCubeDim = 10.0;
 
+    //draw scene-specific stuff
+	if ((SNOW_GLOBE == gCurrentScene) || (MPM_FLUID == gCurrentScene)) {
+		partRadDraw *= .5;
+		//TODO move collider drawing to colliders.  derp
 		glPushMatrix();//draw sphere
 			glColor4d(0.3f, 0.7f, 0.7f, 0.1f);
 			glTranslated(MyParticleWorld::systems[gCurrentScene]->colliders[1]->center(0), MyParticleWorld::systems[gCurrentScene]->colliders[1]->center(1), MyParticleWorld::systems[gCurrentScene]->colliders[1]->center(2));
-			//glTranslated(0, 0, -(snowGlobRad + distFromSnowGlobe));
-			glutWireSphere(snowGlobRad,32,32); 
+			glutWireSphere(snowGlobRad, 32, 32);
+		glPopMatrix();
+	}
+	if((BALL_DROP ==gCurrentScene) || (INV_PEND ==gCurrentScene) || (SNOW_GLOBE == gCurrentScene) || (MPM_FLUID == gCurrentScene) || (SEAWEED == gCurrentScene) || (MSPR_MTN_PROJ == gCurrentScene)|| (MSPR_MTN_PRO2 == gCurrentScene)){
+		glPushMatrix();//draw ground
+			glColor4d(0.3, 0.7, 0.7, 0.1);
+			glTranslated(MyParticleWorld::systems[gCurrentScene]->colliders[0]->drawLoc(0), MyParticleWorld::systems[gCurrentScene]->colliders[0]->drawLoc(1) - (.5*gndCubeDim), MyParticleWorld::systems[gCurrentScene]->colliders[0]->drawLoc(2));
+			glScalef(5,1,5);
+			glutSolidCube(gndCubeDim); //ground
 		glPopMatrix();
     }
-    if((10 == gCurrentScene) || (11 == gCurrentScene)){
-        drawSpring(currFrame,gCurrentScene,springAra);
+    if((MSPR_MTN_PROJ == gCurrentScene) || (MSPR_MTN_PRO2 == gCurrentScene)){
+        drawSpring(springAra);
     }
-	drawCnstrnt(currFrame, gCurrentScene, partAra, cnstrntAra);
-	drawParts(currFrame, partAra, partRadDraw * 2, partRadDraw * 2, (gCurrentScene == 0), (gCurrentScene == 1));
-	if (MyParticleWorld::systems[gCurrentScene]->flags[mySystem::showVel] && ((1 == gCurrentScene) || (9 == gCurrentScene))) {
-        drawFluidVel(currFrame, gCurrentScene, MyParticleWorld::systems[gCurrentScene]);
+	drawCnstrnt(partAra, cnstrntAra);
+	drawParts(partAra, partRadDraw * 2, partRadDraw * 2, (gCurrentScene == BALL_DROP));
+	if (MyParticleWorld::systems[gCurrentScene]->flags[mySystem::showVel] && ((SNOW_GLOBE == gCurrentScene) || (MPM_FLUID == gCurrentScene) || (SEAWEED == gCurrentScene))) {
+        drawFluidVel( MyParticleWorld::systems[gCurrentScene]);
     }
 
 	// -------------------------------your drawing code ends here  -----------------------------------
@@ -235,7 +230,7 @@ int WindowGLDisplay::FindPartIDXByID(vector<std::shared_ptr<myParticle>>& partAr
 int WindowGLDisplay::FindCnstrntIDXByID(vector<std::shared_ptr<myConstraint>>& cnstrntAra, int id){for(unsigned int i = 0; i < cnstrntAra.size(); ++i){if (cnstrntAra[i]->ID == id) return i;} return -1;}
 
 //draw fluid vectors if a fluid box exists
-void WindowGLDisplay::drawFluidVel(int currFrame, int gCurrentScene, shared_ptr<mySystem> system){
+void WindowGLDisplay::drawFluidVel(shared_ptr<mySystem> system){
         //draw force lines for fluid boxes        
     glPushMatrix();
     glColor4d(1.0f, 0.0f, 0.0f, .1f);
@@ -302,7 +297,7 @@ void WindowGLDisplay::drawCnstrntLine(vector<std::shared_ptr<myParticle>>& partA
 		}
 	}
 }//drawCnstrntLine
-void WindowGLDisplay::drawSpring(int currFrame, int gCurrentScene, vector<std::shared_ptr<particleSystem::mySpring>>& springAra){
+void WindowGLDisplay::drawSpring( vector<std::shared_ptr<particleSystem::mySpring>>& springAra){
 	vector<int> tmpVec(2, -10);
 	//float r;
     float delta_theta = 0.01f;
@@ -324,7 +319,7 @@ void WindowGLDisplay::drawSpring(int currFrame, int gCurrentScene, vector<std::s
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	glPopMatrix();
 }//drawCnstrnt
-void WindowGLDisplay::drawCnstrnt(int currFrame, int gCurrentScene, vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra){
+void WindowGLDisplay::drawCnstrnt(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra){
 	vector<int> tmpVec(2, -10);
 	float r;
     float delta_theta = 0.01f;
@@ -360,7 +355,7 @@ void WindowGLDisplay::drawCnstrnt(int currFrame, int gCurrentScene, vector<std::
 			double cnstrR = (tmpVec[1] >= 0) ? 0 : cnstrntAra[eIdx]->c_Dist;		//radius if constraint is path constraint
 			double lenLine = (start - end).norm();
 			//if not scene 5 (always draw line)  or current constraint is either closest to a particle (dont' draw multiple path constraint lines to each particle) or not a path constraint
-			if ((gCurrentScene != 5) || ((cnstrR != 0) && (((lenLine/cnstrR) < 1.01 ) || (tmpVec[1] >= 0)))){
+			if ((gCurrentScene != CNSTR_4_JMP) || ((cnstrR != 0) && (((lenLine/cnstrR) < 1.01 ) || (tmpVec[1] >= 0)))){
 				//glColor3d(partAra[sIdx]->color[0], partAra[sIdx]->color[1], partAra[sIdx]->color[2]);
 				glColor3f(0.0, 0.0, 0.0); 
 				glBegin(GL_LINES);
@@ -374,7 +369,7 @@ void WindowGLDisplay::drawCnstrnt(int currFrame, int gCurrentScene, vector<std::
 }//drawCnstrnt
 
 //draw all particles for a particular scene
-void WindowGLDisplay::drawParts(int currFrame, vector<std::shared_ptr<particleSystem::myParticle>>& partAra, double calc_partSize, double d_partSize, bool draw1stPartBlue, bool BiggerPlayBackParts){
+void WindowGLDisplay::drawParts(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, double calc_partSize, double d_partSize, bool draw1stPartBlue){
 	for(unsigned int i=0; i<partAra.size(); i++){
 		if ((draw1stPartBlue) && (i==0)){glColor3f(0.0f, 0.0f, 1.0f);} 
 		else {

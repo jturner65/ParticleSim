@@ -69,8 +69,9 @@ void Pause_cb(fltk::Widget *o, void *v){
 }
 
 void Switch_cb(fltk::Widget *o, void *v){
-	gCurrentScene++;
-	if (gCurrentScene >= numCurrSystems){gCurrentScene = 0;}
+	gCurrentScene = (gCurrentScene + 1) % numCurrSystems;
+	//gCurrentScene++;
+	//if (gCurrentScene >= numCurrSystems){gCurrentScene = 0;}
 	gReset = true;
     mUI->mControl->setRange(0);
 }

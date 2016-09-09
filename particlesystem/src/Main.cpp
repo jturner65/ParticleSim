@@ -62,7 +62,7 @@ int main(int argc, char ** argv){
 	for (int i = 0; i < numCurrSystems; ++i) {
 		MyParticleWorld::initScene(i, globDeltaT, RK4_G, 0, 0, 0);			//start on mass spring motion scene
 	}
-	gCurrentScene = 10;
+	gCurrentScene = MSPR_MTN_PROJ;		//start with 30 sided die
 
     // show UI
 	fltk::visual(fltk::DOUBLE_BUFFER|fltk::INDEXED_COLOR);

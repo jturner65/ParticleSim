@@ -14,15 +14,14 @@ namespace particleSystem{
 	class myCollider {
 	public:
 		myCollider() :ID(++ID_gen), name(), colType(), drawLoc(), center(), radius(), minMaxRadius(2), planeNormal(), verts(), peq(4), intRefl(), Krest(1), muFrict(0) {}
-		myCollider(string _n, CollisionType _typ, bool _inRefl) :ID(++ID_gen), name(_n), colType(_typ), drawLoc(), center(), radius(), minMaxRadius(2), planeNormal(), verts(), peq(4), intRefl(_inRefl), Krest(1), muFrict(0) {}
 
-		myCollider(string _n, const Eigen::Vector3d& _dr, const Eigen::Vector3d& _ctr, const Eigen::Vector3d& _rad, bool _inRefl) :							//sphere collider
-			ID(++ID_gen), name(_n), colType(SPHERE), drawLoc(_dr), center(_ctr), radius(_rad), minMaxRadius(2), planeNormal(), verts(), peq(4), intRefl(_inRefl), Krest(1) {
+		myCollider(string _n, const Eigen::Vector3d& _drawLoc, const Eigen::Vector3d& _ctr, const Eigen::Vector3d& _rad, bool _inRefl) :							//sphere collider
+			ID(++ID_gen), name(_n), colType(SPHERE), drawLoc(_drawLoc), center(_ctr), radius(_rad), minMaxRadius(2), planeNormal(), verts(), peq(4), intRefl(_inRefl), Krest(1) {
 			initCollider();
 		}
 
-		myCollider(string _n, const Eigen::Vector3d& _dr, vector<Eigen::Vector3d> _vs, bool _inRefl) :		//flat collider
-			ID(++ID_gen), name(_n), colType(FLAT), drawLoc(_dr), center(), radius(), minMaxRadius(2), planeNormal(), verts(_vs), peq(4), intRefl(_inRefl), Krest(1) {
+		myCollider(string _n, const Eigen::Vector3d& _drawLoc, vector<Eigen::Vector3d> _vs, bool _inRefl) :		//flat collider
+			ID(++ID_gen), name(_n), colType(FLAT), drawLoc(_drawLoc), center(), radius(), minMaxRadius(2), planeNormal(), verts(_vs), peq(4), intRefl(_inRefl), Krest(1) {
 			initCollider();
 		}
 
