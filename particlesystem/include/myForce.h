@@ -25,7 +25,6 @@ namespace particleSystem{
 
 		//pos 0 in vector is point 0, pos 1 is point 1
 		static vector<Eigen::Vector3d> calcForceOnParticle(std::shared_ptr<myParticle> _p1, std::shared_ptr<myParticle> _p2, double d, std::shared_ptr<myForce> force);//sets quantities in particle relevant to this force application - adds force result to forceAcc
-		//static vector<Eigen::Vector3d> calcForceOnParticle(myParticle& _p1, myParticle& _p2, double d, myForce& force, const Eigen::Vector3d& sprRestVec);//sprRestVec is vector in direction from p2 to p1 at rest state (rest length)
 
 		//ForceType getFtype(){return ftype;}
 

@@ -20,11 +20,11 @@ namespace particleSystem{
 	//a normal-dir component of velocity, in which case it will modify the force
 	//0 vec if no collision, 1 if collision via breach, 2 if collision next timestep, 3 if need to counter force due to contact
 	int myCollider::checkCollision(double deltaT, std::shared_ptr<myParticle> part) {
-		Eigen::Vector3d partLoc = part->position[0];
-		Eigen::Vector3d partVel = part->velocity[0];
+		Eigen::Vector3d partLoc = part->getPosition();// position[0];
+		Eigen::Vector3d partVel = part->getVelocity();
 		vector<Eigen::Vector3d> partVelComp;
 		Eigen::Vector3d partVelNorm, partVelTan;
-		Eigen::Vector3d partFAcc = part->forceAcc[0];
+		Eigen::Vector3d partFAcc = part->getForceAcc();
 
 		if (colType == FLAT) {//find distance from plane, if greater than possible displacement, then no collision, 
 			double distFromBreach = (partLoc - verts[0]).dot(planeNormal);
@@ -99,14 +99,15 @@ namespace particleSystem{
 	//if particle has breached planar collider somehow, move particle along appropriate normal direction until not breached anymore, and check particle's velocity(and reverse if necessary)
 	Eigen::Vector3d myCollider::handlePlanarCollision(std::shared_ptr<myParticle> p, int res) {
 		Eigen::Vector3d resFrc(0, 0, 0);
-		Eigen::Vector3d partPos = p->position[0];
+		Eigen::Vector3d partPos = p->getPosition();//position[0];
 		double distFromBreach = (partPos - verts[0]).dot(planeNormal);
-		Eigen::Vector3d partVel = p->velocity[0];
+		Eigen::Vector3d partVel = p->getVelocity();
 		//1 if collision via breach, 2 if collision next timestep, 3 if need to counter force due to contact
 		if ((res == 2) || (partVel.dot(planeNormal) < 0)) {//going to breach next time step, or have breached and velocity is still going down - swap velocity direction
 			vector<Eigen::Vector3d> partVelComp = getPartVelNorm(partVel, planeNormal);
 			//partVelComp[0] *= (-1 * Krest);//reverse direction of normal velocity
-			p->velocity[0] = (-1 * Krest)* partVelComp[0] + partVelComp[1];//should change dir of velocity
+			//TODO change this for verlet integrator 
+			p->setVelocity( (-1 * Krest)* partVelComp[0] + partVelComp[1]);//should change dir of velocity
 			// p->color = Eigen::Vector3d(1,0,0);
 			if (p->solveType == VERLET) { handleVerletCol(p); }//handle reflection/velocity change by swapping old and new positions - need to scale by krest
 		}//if breached and velocity going away from wall
@@ -119,14 +120,14 @@ namespace particleSystem{
 				distFromBreach *= -(2.001);
 				Eigen::Vector3d newPos((partPos + (planeNormal * (distFromBreach + epsVal))));   //reflect position up from plane by slightly more than breach amount
 				//if(p->getSolveType() == GROUND){cout<<"dist from breach "<<distFromBreach<<" old position: "<<partPos<<" new position : "<<newPos<<endl;}
-				p->position[0] = newPos;
-				vector<Eigen::Vector3d> partAccComp = getPartVelNorm(p->forceAcc[0], planeNormal);
+				p->setPosition( newPos);
+				vector<Eigen::Vector3d> partAccComp = getPartVelNorm(p->getForceAcc(), planeNormal);
 				Eigen::Vector3d frcTanDir = partAccComp[1].normalized();
 				Eigen::Vector3d tanForce = -(1 * muFrict * (partAccComp[0].dot(planeNormal)) * frcTanDir);
-				p->forceAcc[0] = partAccComp[0] ;
+				p->setForceAcc( partAccComp[0]) ;
 				resFrc = -muFrict*partAccComp[1];       //apply to all particles
 
-				p->velocity[0].setZero();// = Eigen::Vector3d(0,0,0);//partVelComp[0];//+partVelComp[1];//should change dir of velocity
+				p->getVelocity().setZero();// = Eigen::Vector3d(0,0,0);//partVelComp[0];//+partVelComp[1];//should change dir of velocity
 			}
 		}//if 1
 
@@ -135,9 +136,9 @@ namespace particleSystem{
 		}
 
 		if ((res == 3) || (res == 2) || (res == 1)) {                             //any contact criteria - swap normal force direction
-			vector<Eigen::Vector3d> partAccComp = getPartVelNorm(p->forceAcc[0], planeNormal);
+			vector<Eigen::Vector3d> partAccComp = getPartVelNorm(p->getForceAcc(), planeNormal);
 			partAccComp[0] *= -1;//reverse direction of normal acc
-			p->forceAcc[0] = (partAccComp[0] + partAccComp[1]);
+			p->setForceAcc(partAccComp[0] + partAccComp[1]);
 			// p->applyForce((partAccComp[0] + partAccComp[1]));
 		}//tangent
 
@@ -145,26 +146,25 @@ namespace particleSystem{
 	}//handlePlanarBreach
 
 	void myCollider::handleVerletCol(std::shared_ptr<myParticle> p) {
-		Eigen::Vector3d tmpOldPos = p->position[0], tmpNewPos = p->oldPos[0];         //swapped already
+		Eigen::Vector3d tmpOldPos = p->getPosition(), tmpNewPos = p->getPosition(1);         //swapped already
 		Eigen::Vector3d colPt = .5*(tmpOldPos + tmpNewPos);
 		double krTmp = ((1 - Krest) * .25) + Krest;
 		tmpOldPos = krTmp*(2 * (tmpOldPos - colPt.dot(planeNormal) * planeNormal) - (tmpOldPos - colPt)) + colPt;
 		tmpNewPos = (2 * (tmpNewPos - colPt.dot(planeNormal) * planeNormal) - (tmpNewPos - colPt)) + colPt;
-		p->position[0] = tmpNewPos;
-		p->oldPos[0] = tmpOldPos;
-
+		p->setPosition(tmpNewPos);
+		p->setPosition(tmpOldPos,1);
 	}
 
 	//if particle has breached planar collider somehow, move particle along appropriate normal direction until not breached anymore, and check particle's velocity(and reverse if necessary)
 	void myCollider::handleSphereCollision(std::shared_ptr<myParticle> p, int res) {
-		Eigen::Vector3d partPos = p->position[0];
-		Eigen::Vector3d partVel = p->velocity[0];
+		Eigen::Vector3d partPos = p->getPosition();
+		Eigen::Vector3d partVel = p->getVelocity();
 		Eigen::Vector3d sphereNormal = getSphereNormal(partPos);
 
 		if (res == 2) {//if close to intersection with sphere boundary
 			vector<Eigen::Vector3d> partVelComp = getPartVelNorm(partVel, sphereNormal);
 			//partVelComp[0] *= (-1 * Krest);//reverse direction of normal velocity
-			p->velocity[0] = ((-1 * Krest)*partVelComp[0] + partVelComp[1]);//should change dir of velocity, decrease tangent velocity for friction
+			p->getVelocity() = ((-1 * Krest)*partVelComp[0] + partVelComp[1]);//should change dir of velocity, decrease tangent velocity for friction
 		}//if about to hit collider
 
 		else if (res == 1) {//1 if collision via breach, 2 if collision next timestep, 3 if need to counter force due to contact
@@ -174,15 +174,15 @@ namespace particleSystem{
 			else {//forcibly move particle to just a bit on the right side of the collider, reverse velocity
 				distFromBreach *= (1.1);//move slightly more than breach amount
 				Eigen::Vector3d newPos((partPos + (sphereNormal * (distFromBreach))));//move back into sphere
-				p->position[0] = newPos;
+				p->setPosition(newPos);
 				vector<Eigen::Vector3d> partVelComp = getPartVelNorm(partVel, sphereNormal);
 				//partVelComp[0] *= -1;//reverse direction of normal velocity
-				p->velocity[0] = (-1* partVelComp[0] + partVelComp[1]);//should change dir of velocity, for sphere zeroing tangent velocity
+				p->getVelocity() = (-1* partVelComp[0] + partVelComp[1]);//should change dir of velocity, for sphere zeroing tangent velocity
 			}
 		}//if 1
 		else if (res == 3) //|| (res == 2) || (res == 1)) 
 		{//tangent, get forceAcc and add -(forcecomponent in normal dir)
-			vector<Eigen::Vector3d> partAccComp = getPartVelNorm(p->forceAcc[0], sphereNormal);
+			vector<Eigen::Vector3d> partAccComp = getPartVelNorm(p->getForceAcc(), sphereNormal);
 			partAccComp[0] *= -1 * Krest;//reverse direction of normal accel
 			p->applyForce((partAccComp[0] + partAccComp[1]));
 		}//tangent

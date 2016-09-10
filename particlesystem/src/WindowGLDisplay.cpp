@@ -111,6 +111,15 @@ WindowGLDisplay::WindowGLDisplay(int x, int y, int w, int h): GlWindow(x,y,w,h,N
 
 	mBodyTrackBall=NULL;
 	mAntiAlias = false;
+	float theta = 0.0f;
+	for (int i = 0; i < 629; ++i) {
+		cosAra[i] = cos(theta);
+		sinAra[i] = sin(theta);
+		theta += .01f;
+	}
+
+
+
 }
 
 void WindowGLDisplay::draw(){
@@ -148,16 +157,14 @@ void WindowGLDisplay::render()
 	unsigned int currFrame = mUI->mControl->getCurrentFrame();
 
 	// ------------------------------ your drawing code starts here  --------------------------------
-	
-	vector<std::shared_ptr<particleSystem::myParticle>> partAra;
-	vector<std::shared_ptr<particleSystem::mySpring>> springAra;
-	vector<std::shared_ptr<particleSystem::myConstraint>> cnstrntAra = MyParticleWorld::systemConstraintHolder[gCurrentScene][currFrame];
-
+	//decide whether drawing for during simulation or during playback and set this to appropriate idx
+	int stIdx = MyParticleWorld::systemParticleHolder[gCurrentScene].size() - 1;// ((mUI->mSim_but->value()) ? MyParticleWorld::systemParticleHolder[gCurrentScene].size() - 1 : currFrame);
 	int pSize = MyParticleWorld::systems[gCurrentScene]->p.size();
 
-    //decide whether drawing for during simulation or during playback and set this to appropriate idx
-	int stIdx = ((mUI->mSim_but->value()) ? MyParticleWorld::systemParticleHolder[gCurrentScene].size() - 1 : currFrame);
-	partAra = MyParticleWorld::systemParticleHolder[gCurrentScene][stIdx];
+	vector<std::shared_ptr<particleSystem::myParticle>> partAra = MyParticleWorld::systemParticleHolder[gCurrentScene][stIdx];
+	vector<std::shared_ptr<particleSystem::mySpring>> springAra;
+	vector<std::shared_ptr<particleSystem::myConstraint>> cnstrntAra;// = MyParticleWorld::systemConstraintHolder[gCurrentScene][currFrame];
+
 	if (currFrame<MyParticleWorld::systemConstraintHolder[gCurrentScene].size()) { cnstrntAra = MyParticleWorld::systemConstraintHolder[gCurrentScene][stIdx]; }
 	if (currFrame<MyParticleWorld::systemSpringHolder[gCurrentScene].size()) { springAra = MyParticleWorld::systemSpringHolder[gCurrentScene][stIdx]; }
 	double partRadDraw = (partRad), gndCubeDim = 10.0;
@@ -210,13 +217,18 @@ void WindowGLDisplay::render()
 		glLineWidth(2.0);
 		glColor3f( 1.0f, 1.0f, 0.0f );
 		double r = mTrackball.mRadius;
-		glBegin( GL_LINE_LOOP);		
-		for(int i = 0; i < 360; i+=4){
-			double theta = i / 180.0 * M_PI;
-			double x = r * cos(theta);
-			double y = r * sin(theta);
-			glVertex2d( (GLdouble)((mWinWidth >> 1) + x), (GLdouble)((mWinHeight >> 1) + y));
+		glBegin( GL_LINE_LOOP);	
+
+		for (int i = 0; i < 629; i +=8) {
+			glVertex2d((GLdouble)((mWinWidth >> 1) + (r * cosAra[i])), (GLdouble)((mWinHeight >> 1) + (r * sinAra[i])));
 		}
+
+		//for(int i = 0; i < 360; i+=4){
+		//	double theta = i / 180.0 * M_PI;
+		//	double x = r * cos(theta);
+		//	double y = r * sin(theta);
+		//	glVertex2d( (GLdouble)((mWinWidth >> 1) + x), (GLdouble)((mWinHeight >> 1) + y));
+		//}
 		glEnd();
 		glPopMatrix();
 		glEnable( GL_LIGHTING );
@@ -277,38 +289,37 @@ void WindowGLDisplay::drawFluidVel(shared_ptr<mySystem> system){
 }//drawFluidVel
 
 
-void WindowGLDisplay::drawCnstrntLine(vector<std::shared_ptr<myParticle>>& partAra, vector<std::shared_ptr<myConstraint>>& cnstrntAra, vector<vector<int>>& linePointIDS, bool bindCnstr, double cnstrR){
-	glColor3f(0.0, 0.0, 0.0);
-	int sIdx, eIdx;
-	Eigen::Vector3d start, end;
-	for each (auto linetup in linePointIDS){
-		sIdx = FindPartIDXByID(partAra,linetup[0]);
-		//eIdx = (linetup[1] >= 0) ? FindPartIDXByID(partAra,linetup[1]) : MyParticleWorld::systems[MyParticleWorld::curSystem]->getCnstIDXByID(-1 * linetup[1]);//check if 2nd point is actual cnstrt point or center of path constraint
-		eIdx = (linetup[1] >= 0) ? FindPartIDXByID(partAra,linetup[1]) : FindCnstrntIDXByID(cnstrntAra,-1 * linetup[1]);//check if 2nd point is actual cnstrt point or center of path constraint
-
-		start = partAra[sIdx]->position[0];
-		end = (linetup[1] >= 0) ? partAra[eIdx]->position[0] : cnstrntAra[eIdx]->anchorPoint;//check if 2nd point is actual cnstrt point or center of path constraint
-		double lenLine = (start - end).norm();
-		if ((!bindCnstr) || ((cnstrR != 0) && (((lenLine/cnstrR) < 1.05 ) || (linetup[1] >= 0)))){
-			glBegin(GL_LINES);
-				glVertex3d(start[0],start[1], start[2]);
-				glVertex3d(end[0], end[1], end[2]);
-			glEnd();
-		}
-	}
-}//drawCnstrntLine
+//void WindowGLDisplay::drawCnstrntLine(vector<std::shared_ptr<myParticle>>& partAra, vector<std::shared_ptr<myConstraint>>& cnstrntAra, vector<vector<int>>& linePointIDS, bool bindCnstr, double cnstrR){
+//	glColor3f(0.0, 0.0, 0.0);
+//	int sIdx, eIdx;
+//	Eigen::Vector3d start, end;
+//	for each (auto linetup in linePointIDS){
+//		sIdx = FindPartIDXByID(partAra,linetup[0]);
+//		//eIdx = (linetup[1] >= 0) ? FindPartIDXByID(partAra,linetup[1]) : MyParticleWorld::systems[MyParticleWorld::curSystem]->getCnstIDXByID(-1 * linetup[1]);//check if 2nd point is actual cnstrt point or center of path constraint
+//		eIdx = (linetup[1] >= 0) ? FindPartIDXByID(partAra,linetup[1]) : FindCnstrntIDXByID(cnstrntAra,-1 * linetup[1]);//check if 2nd point is actual cnstrt point or center of path constraint
+//
+//		start = partAra[sIdx]->position[0];
+//		end = (linetup[1] >= 0) ? partAra[eIdx]->position[0] : cnstrntAra[eIdx]->anchorPoint;//check if 2nd point is actual cnstrt point or center of path constraint
+//		double lenLine = (start - end).norm();
+//		if ((!bindCnstr) || ((cnstrR != 0) && (((lenLine/cnstrR) < 1.05 ) || (linetup[1] >= 0)))){
+//			glBegin(GL_LINES);
+//				glVertex3d(start[0],start[1], start[2]);
+//				glVertex3d(end[0], end[1], end[2]);
+//			glEnd();
+//		}
+//	}
+//}//drawCnstrntLine
 void WindowGLDisplay::drawSpring( vector<std::shared_ptr<particleSystem::mySpring>>& springAra){
 	vector<int> tmpVec(2, -10);
 	//float r;
     float delta_theta = 0.01f;
 	Eigen::Vector3d start, end;
 	vector<vector<int>> lineCoords;
-
 	glPushMatrix();
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		for(unsigned int sIdx = 0; sIdx < springAra.size(); ++sIdx){
-            start = springAra[sIdx]->a->position[0];
-			end = springAra[sIdx]->b->position[0];
+            start = springAra[sIdx]->a->getPosition();
+			end = springAra[sIdx]->b->getPosition();
 			//double lenLine = len(start - end);
 			glColor3f(0,0,0);
 			glBegin(GL_LINES);
@@ -332,16 +343,16 @@ void WindowGLDisplay::drawCnstrnt(vector<std::shared_ptr<particleSystem::myParti
 		glColor3f(0.0, 0.0, 0.0);
 		for(unsigned int cidx = 0; cidx < cnstrntAra.size(); ++cidx){
             sIdx = MyParticleWorld::systems[gCurrentScene]->c[cidx]->p1Idx;
-            start = partAra[sIdx]->position[0];
+            start = partAra[sIdx]->getPosition();
 			if(cnstrntAra[cidx]->useAnchor){//use anchor means circular path constraint
                     //draw circle
                 if(MyParticleWorld::systems[gCurrentScene]->c[cidx]->drawCnstrPath){
 				    r = (float)cnstrntAra[cidx]->c_Dist;
 				    Eigen::Vector3d loc = cnstrntAra[cidx]->anchorPoint; 
 				    glBegin( GL_POLYGON ); // OR GL_LINE_LOOP
-				    for( float angle = 0; angle < 2*PI; angle += delta_theta ){
-					    glVertex3d( r*cos(angle)+ loc[0], r*sin(angle)+ loc[1], loc[2] );			//draw circle of circular path constrnt
-                    }
+					for (unsigned int thetIDX = 0; thetIDX < 629; ++thetIDX) {
+						glVertex3d(r*cosAra[thetIDX] + loc[0], r*sinAra[thetIDX] + loc[1], loc[2]);			//draw circle of circular path constrnt
+					}
 				    glEnd();
                 }
 
@@ -351,7 +362,7 @@ void WindowGLDisplay::drawCnstrnt(vector<std::shared_ptr<particleSystem::myParti
 				tmpVec[1] = MyParticleWorld::systems[gCurrentScene]->c[cidx]->p2ID;
 			}
 			eIdx = (tmpVec[1] >= 0) ? FindPartIDXByID(partAra,tmpVec[1]) : FindCnstrntIDXByID(cnstrntAra,-1 * tmpVec[1]);//check if 2nd point is actual cnstrt point or center of path constraint
-			end = (tmpVec[1] >= 0) ? partAra[eIdx]->position[0] : cnstrntAra[eIdx]->anchorPoint;//check if 2nd point is actual cnstrt point or center of path constraint
+			end = (tmpVec[1] >= 0) ? partAra[eIdx]->getPosition() : cnstrntAra[eIdx]->anchorPoint;//check if 2nd point is actual cnstrt point or center of path constraint
 			double cnstrR = (tmpVec[1] >= 0) ? 0 : cnstrntAra[eIdx]->c_Dist;		//radius if constraint is path constraint
 			double lenLine = (start - end).norm();
 			//if not scene 5 (always draw line)  or current constraint is either closest to a particle (dont' draw multiple path constraint lines to each particle) or not a path constraint
@@ -376,7 +387,7 @@ void WindowGLDisplay::drawParts(vector<std::shared_ptr<particleSystem::myParticl
 			glColor3d(partAra[i]->color[0],partAra[i]->color[1],partAra[i]->color[2]);
 		}//
 		glPushMatrix();
-			glTranslated(partAra[i]->position[0][0], partAra[i]->position[0][1], partAra[i]->position[0][2]);
+			glTranslated(partAra[i]->getPosition()[0], partAra[i]->getPosition()[1], partAra[i]->getPosition()[2]);
 		//	glutSolidSphere(calc_partSize* (log(1 + partAra[i]->mass)), 8, 8);
 			glutSolidSphere(calc_partSize, 5, 5);
 		glPopMatrix();

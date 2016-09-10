@@ -51,8 +51,13 @@ namespace particleSystem{
 		virtual void handlePause() {};
 		virtual void handleTimeStep();
 
+		inline void addParticle(double _mass, const Eigen::Vector3d&  _pos, SolverType _solv) {
+			p.push_back(std::make_shared<myParticle>(1.0, _pos, Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), _solv));
+		}
 
-		//void handleGlobeTimeStep(double fMult, bool& dragged, const Eigen::Vector3d& msdrgVal0, const Eigen::Vector3d& msdrgVal1);
+		inline void addParticle(double _mass, const Eigen::Vector3d&  _pos, const Eigen::Vector3d&  _vel, SolverType _solv) {
+			p.push_back(std::make_shared<myParticle>(1.0, _pos, _vel, Eigen::Vector3d(0, 0, 0), _solv));
+		}
 
 		void applyForcesToSystem();
 		void applySpringForcesToSystem();
@@ -86,7 +91,7 @@ namespace particleSystem{
 			return ss.str();
 		}
 
-		inline double dist2Parts(int p1idx, int p2idx) { return (p[p1idx]->position[0] - p[p2idx]->position[0]).norm(); }
+		inline double dist2Parts(int p1idx, int p2idx) { return (p[p1idx]->getPosition() - p[p2idx]->getPosition()).norm(); }
 
 		//void buildRhTrHdrn(Eigen::Vector3d& sLoc); //rhombic triacontahedron (30 sided die) - for mass spring motion project
 		//void buildMsSprMtn2(Eigen::Vector3d& sLoc); //some other mass-spring object
@@ -226,8 +231,8 @@ namespace particleSystem{
 
 	
 		bool handlePartCldrCollision();
-		void handlePlanarCollision(myCollider& col, std::shared_ptr<myParticle> part, int colType);
-		void handleSphereCollision(myCollider& col, std::shared_ptr<myParticle> part, int colType);
+		//void handlePlanarCollision(myCollider& col, std::shared_ptr<myParticle> part, int colType);
+		//void handleSphereCollision(myCollider& col, std::shared_ptr<myParticle> part, int colType);
 
 		bool handlePauseDrawClick(int& clickOnPartIDX, const Eigen::Vector3d& mClickLoc, bool idxIs5);
 		bool handlePauseDrawRel(int& clickOnPartIDX, const Eigen::Vector3d& mClickRel, bool idxIs5);

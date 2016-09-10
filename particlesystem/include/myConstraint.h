@@ -23,8 +23,9 @@ namespace particleSystem{
 			double result;
 			//Eigen::Vector3d p1Pos(p1->position[0]);
 			//cout<<"p1 pos : "<<p1Pos<<endl;
-			Eigen::Vector3d p2Pos(((p2ID != p1ID) ? p2->position[0] : anchorPoint));			//dummy particle for anchor point					
-			result = .5 * ((p1->position[0] - p2Pos).dot(p1->position[0] - p2Pos)) - .5 * (c_Dist * c_Dist);		//circular constraint eq : c = .5 * (part.pos . part.pos) - .5 (cnstrLen * cnstrLen) - circle eq
+			Eigen::Vector3d p2Pos(((p2ID != p1ID) ? p2->getPosition() : anchorPoint));			//dummy particle for anchor point	
+			Eigen::Vector3d p1Pos(p1->getPosition() - p2Pos);
+			result = .5 * (p1Pos.dot(p1Pos)) - .5 * (c_Dist * c_Dist);		//circular constraint eq : c = .5 * (part.pos . part.pos) - .5 (cnstrLen * cnstrLen) - circle eq
 			return result;
 		}
 		//return cdot value evaluated for the 2 positions of this constraint
@@ -32,10 +33,10 @@ namespace particleSystem{
 			double result;
 			//Eigen::Vector3d p1Pos(p1->position[0]);
 			//Eigen::Vector3d p1Vel(p1->velocity[0]);
-			Eigen::Vector3d p2Pos(((p2ID != p1ID) ? p2->position[0] : anchorPoint));			//dummy particle for anchor point				
-			Eigen::Vector3d p2Vel(((p2ID != p1ID) ? p2->velocity[0] : Eigen::Vector3d(0, 0, 0)));
+			Eigen::Vector3d p2Pos(((p2ID != p1ID) ? p2->getPosition() : anchorPoint));			//dummy particle for anchor point				
+			Eigen::Vector3d p2Vel(((p2ID != p1ID) ? p2->getVelocity() : Eigen::Vector3d(0, 0, 0)));
 
-			result = (p1->position[0] - p2Pos).dot(p1->velocity[0] - p2Vel);									//cdot = part.pos dot part.vel
+			result = (p1->getPosition() - p2Pos).dot(p1->getVelocity()  - p2Vel);									//cdot = part.pos dot part.vel
 			return result;
 		}
 		////return cValue evaluated for the 2 particle positions of this constraint-spd implementation
@@ -78,15 +79,15 @@ namespace particleSystem{
 		//}
 		//satisfy a constraint by moving particles explicitly - need to iterate through this a few times every time step, still gonna be way faster than calculating the force constraint, and more stable
 		void satisfyPosConstraint() {
-			Eigen::Vector3d p1p2 = p2->position[0] - p1->position[0];
+			Eigen::Vector3d p1p2 = p2->getPosition() - p1->getPosition();
 			double curDist = (p1p2).norm();
 			Eigen::Vector3d halfCrctVec = 0.5*(p1p2*(1 - c_Dist / curDist));
-			p1->position[0] += halfCrctVec;
-			p2->position[0] -= halfCrctVec;
+			p1->getPosition() += halfCrctVec;
+			p2->getPosition() -= halfCrctVec;
 		}
 
 		//partials of c w/respect to x,y,z
-		inline Eigen::Vector3d calcPartialCP1(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) { return p1->position[0] - ((p2ID != p1ID) ? p2->position[0] : anchorPoint); }			//calculate the partial derivative of C w/respect to x,y,z between 2 particles - eq; -1:id of dummy part
+		inline Eigen::Vector3d calcPartialCP1(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) { return p1->getPosition() - ((p2ID != p1ID) ? p2->getPosition() : anchorPoint); }			//calculate the partial derivative of C w/respect to x,y,z between 2 particles - eq; -1:id of dummy part
 		inline Eigen::Vector3d calcPartialCP2(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) { return -1 * calcPartialCP1(p1, p2); }														//calculate the partial derivative of C w/respect to x - eq = -partCP1Xval
 		//partials of cdot w/respect to x,y,z
 		inline Eigen::Vector3d calcPartialCdotP1(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) {
@@ -94,9 +95,9 @@ namespace particleSystem{
 			//Eigen::Vector3d p1Vel(p1->velocity[0]);
 			//Eigen::Vector3d p1Force(p1->forceAcc[0]);
 			//Eigen::Vector3d p2Pos( ((p2->getID() != p1->getID() ) ? p2->position[0] : anchorPoint));			//dummy particle for anchor point				
-			Eigen::Vector3d p2Vel(((p2ID != p1ID) ? p2->velocity[0] : Eigen::Vector3d(0, 0, 0)));
+			Eigen::Vector3d p2Vel(((p2ID != p1ID) ? p2->getVelocity() : Eigen::Vector3d(0, 0, 0)));
 
-			return (p1->velocity[0] - p2Vel);					//cdot = (part.pos.x * part.vel.x) + (part.pos.y * part.vel.y) + (part.pos.z * part.vel.z)
+			return (p1->getVelocity() - p2Vel);					//cdot = (part.pos.x * part.vel.x) + (part.pos.y * part.vel.y) + (part.pos.z * part.vel.z)
 		}//calculate the partial derivative of C w/respect to x - eq
 
 		inline Eigen::Vector3d calcPartialCdotP2(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) { return -1 * calcPartialCdotP1(p1, p2); }			//calculate the partial derivative of C w/respect to x - eq = -partCdotP1Xval

@@ -48,7 +48,7 @@ public:
 	int FindCnstrntIDXByID(vector<std::shared_ptr<myConstraint>>& cnstrntAra, int id);
 	void drawFluidVel( shared_ptr<mySystem> system);
 	void drawParts(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, double calc_partSize, double d_partSize, bool draw1stPartBlue);
-	void drawCnstrntLine(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra, vector<vector<int>>& linePointIDS, bool bindCnstr, double cnstrR);	
+	//void drawCnstrntLine(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra, vector<vector<int>>& linePointIDS, bool bindCnstr, double cnstrR);	
 	void drawCnstrnt(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra);
 	void drawSpring(vector<std::shared_ptr<particleSystem::mySpring>>& springAra);
 	void render();
@@ -61,6 +61,10 @@ public:
 	bool mShowModel;
 	bool mShowMarker;
 	bool mPlayback;
+
+	//precalced sin and cos arrays
+	float cosAra[629], sinAra[629];
+
 
 	int mWinWidth, mWinHeight;
 	Trackball mTrackball;
@@ -89,10 +93,6 @@ private:
 
 	// picking stuff
 	Trackball *mBodyTrackBall;
-
-	void startPicking();
-	void stopPicking();
-	void processHits(GLint hits, GLuint buffer[], int sw);
 
 	// gets new 3D position of point in same plane as point "pos"
 	Eigen::Vector3d getNew3DPos(const Eigen::Vector3d& pos);

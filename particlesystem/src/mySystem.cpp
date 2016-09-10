@@ -18,13 +18,13 @@ namespace particleSystem{
 		int psize = p.size();
 		for (int pIdx = 0; pIdx < psize - 1; ++pIdx) {
 			for (int qIdx = pIdx + 1; qIdx < psize; ++qIdx) {
-				double dist = (p[pIdx]->position[0] - p[qIdx]->position[0]).squaredNorm();
+				double dist = (p[pIdx]->getPosition() - p[qIdx]->getPosition()).squaredNorm();
 				if (dist < partColDist) {// check if particles within potential collision dist of each other
 					if (checkParticlePairForCollision(p[pIdx], p[qIdx], dist)) {					//check if headed in same direction
 						//if so, swap velocities
-						Eigen::Vector3d pVel(p[pIdx]->velocity[0]);
-						p[pIdx]->velocity[0] = (p[qIdx]->velocity[0]);
-						p[qIdx]->velocity[0] = (pVel);
+						Eigen::Vector3d pVel(p[pIdx]->getVelocity());
+						p[pIdx]->setVelocity(p[qIdx]->getVelocity());
+						p[qIdx]->setVelocity(pVel);
 					}//if collision, then swap velocities
 				}
 			}//qIdx = this is to pick both particles to compare - need to set both particles' values in the compare -  this should only make any pairing one time		
@@ -39,16 +39,16 @@ namespace particleSystem{
 		int psize = p.size();
 		for(int pIdx = 0; pIdx < psize -1; ++pIdx){
 			for(int qIdx = pIdx + 1; qIdx < psize; ++qIdx){
-				double dist = (p[pIdx]->position[0] - p[qIdx]->position[0]).squaredNorm();
+				double dist = (p[pIdx]->getPosition() - p[qIdx]->getPosition()).squaredNorm();
 				if(dist < partColDist){// check if particles within potential collision dist of each other
     				tmpRes = myForce::calcForceOnParticle(p[pIdx],p[qIdx],0,tmpForceRepl);		//apply repulsion force
 					p[pIdx]->applyForce(tmpRes[0]);
 					p[qIdx]->applyForce(tmpRes[1]);
 					if (checkParticlePairForCollision(p[pIdx], p[qIdx], dist)){					//check if headed in same direction
 							//if so, swap velocities
-						Eigen::Vector3d pVel(p[pIdx]->velocity[0]);
-						p[pIdx]->velocity[0] = (p[qIdx]->velocity[0]);
-						p[qIdx]->velocity[0] = (pVel);
+						Eigen::Vector3d pVel(p[pIdx]->getVelocity());
+						p[pIdx]->setVelocity(p[qIdx]->getVelocity());
+						p[qIdx]->setVelocity(pVel);
 					}//if collision, then swap velocities
 				}
 			}//qIdx = this is to pick both particles to compare - need to set both particles' values in the compare -  this should only make any pairing one time		
@@ -58,13 +58,14 @@ namespace particleSystem{
 	//checks if two particles are going to collide with one another in the next time step, if so, swap the components of their velocities in the directions they collide
 	bool mySystem::checkParticlePairForCollision(std::shared_ptr<myParticle> partA, std::shared_ptr<myParticle> partB, double dist){
 		//make one particle stationary
-		Eigen::Vector3d combVel = partA->velocity[0] - partB->velocity[0];				//part b is "stationary", and part a has all velocity
+		Eigen::Vector3d combVel = partA->getVelocity() - partB->getVelocity();				//part b is "stationary", and part a has all velocity
 		Eigen::Vector3d velDelT = combVel * deltaT;
-		Eigen::Vector3d partBtoADir = (partA->position[0] - partB->position[0]).normalized();	//vector from particle b to particle a - if velocity vector not close to this direction, then no collision
+		Eigen::Vector3d partDiffs = partA->getPosition() - partB->getPosition();
+		Eigen::Vector3d partBtoADir = (partA->getPosition() - partB->getPosition()).normalized();	//vector from particle b to particle a - if velocity vector not close to this direction, then no collision
 		if ((velDelT.squaredNorm() < (dist * dist)) || (partBtoADir.dot(combVel) >= 0)) { return false; }	//particles not going fast enough in the appropriate direction to get closer to each other - moving apart (sqr calc faster than sqrt)
 																									//or a's velocity in wrong direction => perp or in the same general direction as vector from b to a
 		double colRad = 2 * partRad;											//minimum distance within which a collision will occur - treat like the radius of a circle that partA ray is going to possibly intersect
-		Eigen::Vector3d partAPos = partA->position[0], partBPos = partB->position[0], partDiffs = partAPos - partBPos;
+		//Eigen::Vector3d partAPos = partA->position[0], partBPos = partB->position[0], partDiffs = partAPos - partBPos;
 		//determine ray-sphere intersect, where ray is partA.pos + (combVelDir * t) and sphere is ctred at partB.pos and radius colRad - if t works out to be < delta t then collision occurs
 		double A = combVel.squaredNorm();	//Vx^2 + Vy^2 + Vz^2
 		double B = 2 * (combVel.dot(partDiffs));		//partB pos = sphere center, partA pos, ray origin
@@ -154,9 +155,9 @@ namespace particleSystem{
         A = M;      //mass matrix
         int sIdx = 0, pIdx = 0, vIdx = 0;
 		for (int i = 0; i<numParts; ++i) {     //get all positions, velocities, forces for every particle
-			p0.segment<3>(sIdx) = p[i]->position[0];
-			v0.segment<3>(sIdx) = p[i]->velocity[0];
-			f0.segment<3>(sIdx) = p[i]->forceAcc[0]; //p[i]->getForceAcc();
+			p0.segment<3>(sIdx) = p[i]->getPosition();
+			v0.segment<3>(sIdx) = p[i]->getVelocity();
+			f0.segment<3>(sIdx) = p[i]->getForceAcc();
 			sIdx += 3;
 		}
         int aIdx, bIdx;
@@ -169,7 +170,7 @@ namespace particleSystem{
 		Eigen::VectorXd dfdxV0(numParts3);    dfdxV0.setZero();
 
         for(int i=0; i<numSprings; i++ ){//mult df/dx by rel velocity between two parts
-            tmp1 = spr[i]->Jp*(spr[i]->a->velocity[0] - spr[i]->b->velocity[0]);
+            tmp1 = spr[i]->Jp*(spr[i]->a->getVelocity() - spr[i]->b->getVelocity());
             mtmp2 = deltaT * spr[i]->Jv;
             mtmp3 = delT2 * spr[i]->Jp;
             aIdx = 3 * spr[i]->a->ID;
@@ -191,12 +192,15 @@ namespace particleSystem{
         Eigen::VectorXd dvNew = calcConjGrad(b, A, f0);            //TODO solve this
 
         Eigen::VectorXd v1 = v0 + deltaT * dvNew;
-        Eigen::VectorXd p1 = p0 + deltaT * v1;
+		Eigen::VectorXd p1 = p0 + deltaT * v1;
+		Eigen::VectorXd nstate (6), nstateDot(6);
         pIdx = 0;        vIdx = 0;
 		for (int i = 0; i< numParts; ++i) {           //set results from forward integration
 			//newPos[0] = p1[pIdx++];          newPos[1] = p1[pIdx++];            newPos[2] = p1[pIdx++];
 			//newVel[0] = v1[vIdx++];          newVel[1] = v1[vIdx++];            newVel[2] = v1[vIdx++];
-			p[i]->advance(p1.segment<3>(pIdx), v1.segment<3>(vIdx), Eigen::Vector3d(0, 0, 0));
+			nstate << p1.segment<3>(pIdx), v1.segment<3>(vIdx);
+			nstateDot << v1.segment<3>(vIdx), Eigen::Vector3d(0, 0, 0);
+			p[i]->advance(nstate, nstateDot);
 			pIdx += 3; vIdx += 3;
 		}
 
@@ -243,13 +247,14 @@ namespace particleSystem{
         double minDist = 99999, d;
         int minIdx = -1;
         for(int i=0; i<numParts-2; ++i){ 
-            d = (newPos - p[i]->position[0]).norm();
+            d = (newPos - p[i]->getPosition()).norm();
             if(d<minDist){             minDist = d;             minIdx  = i;          }
         }
-        dispVec = p[minIdx]->position[0] - ctrOrigPos;
+        dispVec = p[minIdx]->getPosition() - ctrOrigPos;
         Eigen::Vector3d nDir = dir.normalized();
-        ctr->position[0] = ctrOrigPos + (.95*dispVec.norm()) * nDir;//95% toward the closest particle from central spot
-        p[minIdx]->mass = ctr->mass;
+		//ctr->position[0] = ctrOrigPos + (.95*dispVec.norm()) * nDir;//95% toward the closest particle from central spot
+		ctr->setPosition(ctrOrigPos + (.95*dispVec.norm()) * nDir);//95% toward the closest particle from central spot
+		p[minIdx]->mass = ctr->mass;
 		initMassSystem();
         for(int i =0; i<numSprings; ++i){        spr[i]-> reCalcRestLen();      }   //recalculate rest length
 
@@ -257,7 +262,7 @@ namespace particleSystem{
     void mySystem::resetCtrPointMassSpr(){
         int numParts = p.size(), numSprings = spr.size();
 		Eigen::Vector3d ctrOrigPos = calcAndSetCOM(0, p.size() - 1), dispVec;
-        p[numParts-1]->position[0] = ctrOrigPos;;
+        p[numParts-1]->setPosition( ctrOrigPos);
         for(int i =0; i<numSprings; ++i){        spr[i]-> reCalcRestLen();      }   //recalculate rest length
     }
 	//find COM of particle configuration
@@ -266,7 +271,7 @@ namespace particleSystem{
 		//int numParts = p.size();
 		double totMass = 0;
 		for (unsigned int pidx = stIdx; pidx < endIdx; ++pidx) {
-			tmpCOM += p[pidx]->position[0] * p[pidx]->mass;
+			tmpCOM += p[pidx]->getPosition() * p[pidx]->mass;
 			totMass += p[pidx]->mass;
 		}
 		tmpCOM = tmpCOM / totMass;
@@ -336,12 +341,12 @@ namespace particleSystem{
 
 	void mySystem::buildDefForces(std::string& name, double kdrag) {
 		std::string str1(name);
-		str1.append("Force_Grav");
+		str1.append("_Force_Grav");
 		myForce::ID_gen = f.size();
 		f.push_back(std::make_shared<myForce>(str1, gravVec, S_SCALAR));
 		if (kdrag != 0) {
 			std::string str2(name);
-			str2.append("Fluid_Drag");
+			str2.append("_Fluid_Drag");
 			f.push_back(std::make_shared<myForce>(str2, kdrag, S_VECTOR));
 		}
 	}
@@ -361,16 +366,15 @@ namespace particleSystem{
 	void mySystem::buildInvPend(Eigen::Vector3d& sLoc) {
 		myParticle::ID_gen = p.size();
 		for (int pIdx = 0; pIdx < 4; ++pIdx) {//add 4 new particles for single "inv pendulum"
-			//std::shared_ptr<myParticle>tmpPart(new myParticle(1, Eigen::Vector3d(sLoc[0], sLoc[1] + pIdx, sLoc[2]), Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), RK4));
-			//tmpPart->mass = 1 + (5 - pIdx / 10.0);
-			p.push_back(std::make_shared<myParticle>(1, Eigen::Vector3d(sLoc[0], sLoc[1] + pIdx, sLoc[2]), Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), RK4));
+
+			addParticle(1.0, Eigen::Vector3d(sLoc[0], sLoc[1] + pIdx, sLoc[2]), RK4);
 			p.back()->mass = 1 + (5 - pIdx / 10.0);
 			if (0 == pIdx) {
 				buildAndSetCnstrnts(p.size() - 1, p.size() - 1, 1, Eigen::Vector3d(sLoc[0], sLoc[1] - 1, sLoc[2]));	            //first recent particle
 				c.back()->drawCnstrPath = false;                                               //don't draw circle for first constraint of inverted pendulum
 			}
 			else {
-				buildAndSetCnstrnts(p.size() - 2, p.size() - 1, -1, p[p.size() - 1]->position[0]);
+				buildAndSetCnstrnts(p.size() - 2, p.size() - 1, -1, p[p.size() - 1]->getPosition());
 			}
 		}
 	}//buildInvPend
@@ -388,7 +392,7 @@ namespace particleSystem{
 		double shakeValMag, logShakeVal;
 		for (unsigned int pidx = 0; pidx < p.size(); ++pidx) {
 			//Eigen::Vector3d pPos = p[pidx]->position[0];
-			fluidFrcVal = fluidBox->getVelAtCell(p[pidx]->position[0]);
+			fluidFrcVal = fluidBox->getVelAtCell(p[pidx]->getPosition());
 			shakeValMag = fluidFrcVal.norm();
 			if (shakeValMag > .00001) {
 				logShakeVal = log(shakeValMag) / log(1.1);
@@ -499,12 +503,12 @@ namespace particleSystem{
 	double mySystem::calcAndApplyAnkleForce(int pidx) {
 		//assume constraints length 1
 		double kp = 0;          
-		Eigen::Vector3d tmpThet = (p[pidx]->initPos - p[pidx]->position[0] + (.1 * p[pidx]->velocity[0])); //vector of positions and velocities
-		double lenFacc = p[pidx]->forceAcc[0].norm(),
+		Eigen::Vector3d tmpThet = (p[pidx]->initPos - p[pidx]->getPosition() + (.1 * p[pidx]->getVelocity())); //vector of positions and velocities
+		double lenFacc = p[pidx]->getForceAcc().norm(),
 			lenThet = tmpThet.norm();
 		kp = (0 == lenThet ? 0 : lenFacc * 1.1 / lenThet);
 		//kp *= 1;
-		Eigen::Vector3d newForce = (0 == kp ? Eigen::Vector3d(0, 0, 0) : -kp * lenThet * (p[pidx]->forceAcc[0].normalized()));
+		Eigen::Vector3d newForce = (0 == kp ? Eigen::Vector3d(0, 0, 0) : -kp * lenThet * (p[pidx]->getForceAcc().normalized()));
 		p[pidx]->applyForce(newForce);       //should be 0
 		return kp;
 	}//calcAndApplyAnkleForce
@@ -515,24 +519,29 @@ namespace particleSystem{
 		vector<Eigen::Vector3d> tmpStateVec(4, Eigen::Vector3d(0, 0, 0));
 		vector<Eigen::Vector3d> tmpStateDotVec(4, Eigen::Vector3d(0, 0, 0));
 		vector<Eigen::Vector3d> tmpNextStateVec(4, Eigen::Vector3d(0, 0, 0));
+		Eigen::VectorXd tmp (6), tmpDot(6);
 		int numParts = p.size();
 		//int solverTypeToUse = (usePartSolver ? p[idx]->solveType : solveType);
 		for (int idx = 0; idx < numParts; ++idx) {
-			tmpStateVec[0] = p[idx]->position[0];
-			tmpStateVec[1] = p[idx]->velocity[0];
-			tmpStateVec[2] = p[idx]->oldPos[0];
-			tmpStateVec[3] = p[idx]->oldVel[0];
+			tmpStateVec[0] = p[idx]->getPosition();// position[0];
+			tmpStateVec[1] = p[idx]->getVelocity();
+			tmpStateVec[2] = p[idx]->getPosition(1);
+			tmpStateVec[3] = p[idx]->getVelocity(1);
 
 			tmpStateDotVec[0] = tmpStateVec[1];
-			tmpStateDotVec[1] = p[idx]->forceAcc[0] / p[idx]->mass;
+			tmpStateDotVec[1] = p[idx]->getForceAcc() / p[idx]->mass;
 			tmpStateDotVec[2] = tmpStateVec[3];
-			tmpStateDotVec[3] = p[idx]->oldForceAcc[0] / p[idx]->mass;
+			tmpStateDotVec[3] = p[idx]->getForceAcc(1) / p[idx]->mass;
 			p[idx]->solver->lambda = idx + 1;                      //lambda only used for RK4_G general form rk4, should not be 0
 
 			tmpNextStateVec = p[idx]->solver->Integrate(deltaT, tmpStateVec, tmpStateDotVec);
 			//tmpNextStateVec = p[idx]->solver->(*integrator)(deltaT, tmpStateVec, tmpStateDotVec);
 			p[idx]->solver->lambda = 2;
-			p[idx]->advance(tmpNextStateVec[0], tmpNextStateVec[1], Eigen::Vector3d(0, 0, 0));        //clears forces from force acc
+			tmp << tmpNextStateVec[0], tmpNextStateVec[1];
+			tmpDot << tmpNextStateVec[1], Eigen::Vector3d(0, 0, 0);
+
+			p[idx]->advance(tmp, tmpDot);        //clears forces from force acc
+			//p[idx]->advance(tmpNextStateVec[0], tmpNextStateVec[1], Eigen::Vector3d(0, 0, 0));        //clears forces from force acc
 		}//for each particle
 		 //solver->lambda = 2;//default value for RK4_G
 	}
@@ -546,7 +555,7 @@ namespace particleSystem{
 		partidx = 0;
 		while ((!clickOnPart) && (partidx < p.size())) {
 			//cout << "part to check click loc : " << evec3dToStr(p[partidx]->position[0]) << endl;
-			if ((mClickLoc - p[partidx]->position[0]).norm() <= 2 * partRad) { clickOnPart = true;	sceneModded = true; break; }
+			if ((mClickLoc - p[partidx]->getPosition()).norm() <= 2 * partRad) { clickOnPart = true;	sceneModded = true; break; }
 			++partidx;
 		}//while
 		cnstidx = 0;
@@ -564,7 +573,7 @@ namespace particleSystem{
 		//if clicked on existing constraint and not on existing particle, create particle here and put it on this constraint by creating a new one for it right here
 		if ((!clickOnPart) && (clickOnCnstrnt)) {
 			myParticle::ID_gen = p.size();
-			p.push_back(std::make_shared<myParticle>(1.0, Eigen::Vector3d(mClickLoc), Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), RK4));
+			addParticle(1.0, Eigen::Vector3d(mClickLoc), RK4);
 			int idx = p.size() - 1;
 			Eigen::Vector3d cCtr(c[cnstidx]->anchorPoint);
 			buildAndSetCnstrnts(idx, idx, c[cnstidx]->c_Dist, cCtr);//put last particle as member of new concentric constraint
@@ -577,7 +586,7 @@ namespace particleSystem{
 			clickOnPartIDX = -1;
 			flags[buildDragCnstrnt] = false;		//building constraint from a particle to another particle or space (path constraint) - do not make a path constraint if particle is already on a path constraint
 			myParticle::ID_gen = p.size();
-			p.push_back(std::make_shared<myParticle>(1.0, Eigen::Vector3d(mClickLoc), Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), RK4));
+			addParticle(1.0, Eigen::Vector3d(mClickLoc), RK4);
 			sceneModded = true;
 		}
 		else {				//means we have clicked on an existing particle so we need to set up building and drawing constriant link between this particle and either space (new path constraint) or another particle(tinkertoy constraint)
@@ -603,14 +612,14 @@ namespace particleSystem{
 		if (flags[buildDragCnstrnt]) {
 			while ((!releasedOnPart) && (partidx < p.size())) {
 				//cout << "part to check rel loc : " << evec3dToStr(p[partidx]->position[0]) << endl;
-				if ((mRelLoc - p[partidx]->position[0]).norm() <= 2 * partRad) { releasedOnPart = true; break; }
+				if ((mRelLoc - p[partidx]->getPosition()).norm() <= 2 * partRad) { releasedOnPart = true; break; }
 				++partidx;
 			}//while
 			//cout << "release : released on particle : " << releasedOnPart << " part idx : " << partidx << endl;
 			if (!releasedOnPart) {//means we're not on a particle when we released - create path constraint origin here, if able to, with particle clickOnPartIDX
 				if ((flags[canBuildDragPathCnstrnt]) && (clickOnPartIDX != -1)) {
 					Eigen::Vector3d cCtr(mRelLoc);
-					buildAndSetCnstrnts(clickOnPartIDX, clickOnPartIDX, (p[clickOnPartIDX]->position[0] - mRelLoc).norm(), cCtr);//put last particle as member of new concentric constraint
+					buildAndSetCnstrnts(clickOnPartIDX, clickOnPartIDX, (p[clickOnPartIDX]->getPosition() - mRelLoc).norm(), cCtr);//put last particle as member of new concentric constraint
 					buildCnstrntStruct(idxIs5);
 					flags[buildDragCnstrnt] = false;		//building constraint from a particle to another particle or space (path constraint) - do not make a path constraint if particle is already on a path constraint
 				}
@@ -673,7 +682,7 @@ namespace particleSystem{
 			int mIdx = 0;
 			double cnstDist = 99999999999;
 			int cnstIDX = -1;
-			partLocNext = p[idx]->position[0] + (deltaT *  p[idx]->velocity[0]) + (.5 * deltaT * deltaT * p[idx]->forceAcc[0]);//approx location of particle next timestep if unconstrained
+			partLocNext = p[idx]->getPosition() + (deltaT *  p[idx]->getVelocity()) + (.5 * deltaT * deltaT * p[idx]->getForceAcc());//approx location of particle next timestep if unconstrained
             //for jumping constraints
 			double tmpDist;
 			for (unsigned int cIdx = 0; cIdx < numCnstrnts; ++cIdx){
@@ -692,9 +701,9 @@ namespace particleSystem{
 				if(multiCnstrnt) {continue;}
 			}//means particle has no constraint, continue with particle loop
 
-			tmpq.segment<3>(nIdx) = p[idx]->position[0];
-			tmpqdot.segment<3>(nIdx) = p[idx]->velocity[0];
-			tmpqdotdot.segment<3>(nIdx) = p[idx]->forceAcc[0];
+			tmpq.segment<3>(nIdx) = p[idx]->getPosition();
+			tmpqdot.segment<3>(nIdx) = p[idx]->getVelocity();
+			tmpqdotdot.segment<3>(nIdx) = p[idx]->getForceAcc();
 
 			//populate per constraint/per particle structures
 

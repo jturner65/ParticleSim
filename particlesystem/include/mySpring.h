@@ -38,7 +38,7 @@ namespace particleSystem{
 		}
 
 		void buildSprJpJv();
-		void reCalcRestLen() { restLen = (a->position[0] - b->position[0]).norm(); }
+		void reCalcRestLen() { restLen = (a->getPosition() - b->getPosition()).norm(); }
 		vector<Eigen::Vector3d> calcSpringForce();//sprRestVec is vector in direction from p2 to p1 at rest state (rest length)
 
 		friend ostream& operator<<(ostream& out, const mySpring& _f) {
