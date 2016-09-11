@@ -95,7 +95,7 @@ private:
 	Trackball *mBodyTrackBall;
 
 	// gets new 3D position of point in same plane as point "pos"
-	Eigen::Vector3d getNew3DPos(const Eigen::Vector3d& pos);
+	Eigen::Vector3d getNew3DPos(const Eigen::Ref<const Eigen::Vector3d>& pos);
 };
 
 #endif

@@ -7,7 +7,7 @@ namespace particleSystem{
 	//constraint spring constant
 	double mySystem::globKp = 1000;
 
-    void mySystem::applyForceVecToAllPartsMsSpr(const Eigen::Vector3d& frc){
+    void mySystem::applyForceVecToAllPartsMsSpr(const Eigen::Ref<const Eigen::Vector3d>& frc){
         int numParts = p.size();
 		for(int i = 0; i<numParts-1; ++i){
             p[i]->applyForce(frc);
@@ -15,11 +15,11 @@ namespace particleSystem{
 	}//apply forces to all particles
 	//handle particle-particle collisions no repel force
 	void mySystem::handlePartPartCollision() {
-		int psize = p.size();
-		for (int pIdx = 0; pIdx < psize - 1; ++pIdx) {
-			for (int qIdx = pIdx + 1; qIdx < psize; ++qIdx) {
+		unsigned int psize = p.size();
+		for (unsigned int pIdx = 0; pIdx < psize - 1; ++pIdx) {
+			for (unsigned int qIdx = pIdx + 1; qIdx < psize; ++qIdx) {
 				double dist = (p[pIdx]->getPosition() - p[qIdx]->getPosition()).squaredNorm();
-				if (dist < partColDist) {// check if particles within potential collision dist of each other
+				if (dist < partSqColDist) {// check if particles within potential collision dist of each other
 					if (checkParticlePairForCollision(p[pIdx], p[qIdx], dist)) {					//check if headed in same direction
 						//if so, swap velocities
 						Eigen::Vector3d pVel(p[pIdx]->getVelocity());
@@ -34,16 +34,19 @@ namespace particleSystem{
 	//handle particle-particle collisions
 	void mySystem::handlePartPartRepelCollision() {//adds repeling force
 		myForce::ID_gen = f.size();
-		std::shared_ptr<myForce> tmpForceRepl = std::make_shared<myForce>("Repulsive Dummy",2);			//dummy force
+		//std::shared_ptr<myForce> tmpForceRepl = std::make_shared<myForce>("Repulsive Dummy",2);			//dummy force
+		Eigen::Vector3d tmp(0, 0, 0);
 		vector<Eigen::Vector3d> tmpRes(2,Eigen::Vector3d(0,0,0));
-		int psize = p.size();
-		for(int pIdx = 0; pIdx < psize -1; ++pIdx){
-			for(int qIdx = pIdx + 1; qIdx < psize; ++qIdx){
-				double dist = (p[pIdx]->getPosition() - p[qIdx]->getPosition()).squaredNorm();
-				if(dist < partColDist){// check if particles within potential collision dist of each other
-    				tmpRes = myForce::calcForceOnParticle(p[pIdx],p[qIdx],0,tmpForceRepl);		//apply repulsion force
-					p[pIdx]->applyForce(tmpRes[0]);
-					p[qIdx]->applyForce(tmpRes[1]);
+		unsigned int psize = p.size();
+		for(unsigned int pIdx = 0; pIdx < psize -1; ++pIdx){
+			for(unsigned int qIdx = pIdx + 1; qIdx < psize; ++qIdx){
+				tmp = (p[pIdx]->getPosition() - p[qIdx]->getPosition());
+				double dist = tmp.squaredNorm();
+				//calcReplForceOnParticles(std::shared_ptr<myParticle> _p1, std::shared_ptr<myParticle> _p2, const Eigen::Ref<const Eigen::Vector3d>& diffVec, double kVal)
+				tmpRes = myForce::calcReplForceOnParticles(p[pIdx], p[qIdx], tmp, 2);		//apply repulsion force
+				p[pIdx]->applyForce(tmpRes[0]);
+				p[qIdx]->applyForce(tmpRes[1]);
+				if(dist < partSqColDist){// check if particles within potential collision dist of each other
 					if (checkParticlePairForCollision(p[pIdx], p[qIdx], dist)){					//check if headed in same direction
 							//if so, swap velocities
 						Eigen::Vector3d pVel(p[pIdx]->getVelocity());
@@ -108,7 +111,7 @@ namespace particleSystem{
 		if (flags[useMassMat]) {		calcMassAndWMat();		}
 	}
 
-	//void mySystem::handleGlobeTimeStep(double fMult, bool& dragged, const Eigen::Vector3d& msdrgVal0, const Eigen::Vector3d& msdrgVal1) {
+	//void mySystem::handleGlobeTimeStep(double fMult, bool& dragged, const Eigen::Ref<const Eigen::Vector3d>& msdrgVal0, const Eigen::Ref<const Eigen::Vector3d>& msdrgVal1) {
 	//	//fluidBox->resetOldVals();
 	//	if ((dragged) || ((shakeVal).norm() > 0.001)) {
 	//		addShakeForceToFluid(fMult, msdrgVal0, msdrgVal1); 		dragged = false;			//setting false keeps force from compounding
@@ -280,9 +283,8 @@ namespace particleSystem{
 
     //satisfy all constraints via positional modification of particles-  use verlet integration to handle fwd int, and not have velocity issues
     void mySystem::satisfyPosConstraints(){
-        int numCnstrnts = c.size();
-        int numIters = numPosCnstIters;
-        for(int i =0; i < numIters; ++i){
+		unsigned int numCnstrnts = c.size(), numIters = numPosCnstIters;
+        for(unsigned int i =0; i < numIters; ++i){
             for (unsigned int cIdx = 0; cIdx < numCnstrnts; ++cIdx){
                 c[cIdx]->satisfyPosConstraint();
             }        
@@ -316,7 +318,7 @@ namespace particleSystem{
 	}
 
 	//x,y,z are edge bounds of flat collider at specific y location
-	void mySystem::buildGndCollider(double kRest, double muFrict, double x, double y, double z, std::string& name, const Eigen::Vector3d& drawLoc){//, const Eigen::Vector3d& gndLoc) {
+	void mySystem::buildGndCollider(double kRest, double muFrict, double x, double y, double z, std::string& name, const Eigen::Ref<const Eigen::Vector3d>& drawLoc){//, const Eigen::Ref<const Eigen::Vector3d>& gndLoc) {
 		vector<Eigen::Vector3d> tmpVec(4, Eigen::Vector3d(0, 0, 0));
 		tmpVec[0] = Eigen::Vector3d(-x, y, 0);
 		tmpVec[1] = Eigen::Vector3d(x, y, 0);
@@ -338,16 +340,15 @@ namespace particleSystem{
 		colliders.back()->muFrict = muFrict;
 	}
 
-
-	void mySystem::buildDefForces(std::string& name, double kdrag) {
+	void mySystem::_buildBaseDefForces(double dCoeff) {
 		std::string str1(name);
 		str1.append("_Force_Grav");
 		myForce::ID_gen = f.size();
 		f.push_back(std::make_shared<myForce>(str1, gravVec, S_SCALAR));
-		if (kdrag != 0) {
+		if (0 != dCoeff) {	
 			std::string str2(name);
 			str2.append("_Fluid_Drag");
-			f.push_back(std::make_shared<myForce>(str2, kdrag, S_VECTOR));
+			f.push_back(std::make_shared<myForce>(str2, dCoeff, S_VECTOR));
 		}
 	}
 
@@ -407,7 +408,7 @@ namespace particleSystem{
 
 	//add external force to extremal cells of fluid - walls tangent to plane which force is applied to
 	//apply force in this plane to walls, dotted by their normals
-	void mySystem::addShakeForceToFluid(double fMult, const Eigen::Vector3d& msdrgVal0, const Eigen::Vector3d& msdrgVal1) {
+	void mySystem::addShakeForceToFluid(double fMult, const Eigen::Ref<const Eigen::Vector3d>& msdrgVal0, const Eigen::Ref<const Eigen::Vector3d>& msdrgVal1) {
 		shakeVal = fMult*(msdrgVal1 - msdrgVal0);
 		int sX = fluidBox->numCellX, sY = fluidBox->numCellY, sZ = fluidBox->numCellZ;
 
@@ -462,7 +463,7 @@ namespace particleSystem{
 	}//calcAndAddForce
 
 	//handle adding forces to tinkertoys
-	void mySystem::addForcesToTinkerToys(double fMult, bool msDragged, const Eigen::Vector3d& msDragDif) {
+	void mySystem::addForcesToTinkerToys(double fMult, bool msDragged, const Eigen::Ref<const Eigen::Vector3d>& msDragDif) {
 		if (msDragged) { shakeVal = fMult*(msDragDif); }
 		if (shakeVal.norm() > 0) {
 			Eigen::Vector3d res = calcDragForce(shakeVal);
@@ -473,7 +474,7 @@ namespace particleSystem{
 	}//addForcesToTinkerToys
 
 	//add force to center particle in mass-spring ball
-	void mySystem::addForcesToMassSpringCtrl(double fMult, bool msDragged, const Eigen::Vector3d& msDragDif) {
+	void mySystem::addForcesToMassSpringCtrl(double fMult, bool msDragged, const Eigen::Ref<const Eigen::Vector3d>& msDragDif) {
 		if (msDragged) { shakeVal = fMult*(msDragDif); }
 		if (shakeVal.norm() > 0) {
 			Eigen::Vector3d res = calcDragForce(shakeVal);
@@ -494,7 +495,7 @@ namespace particleSystem{
 	//used for inv pendulum
 	void mySystem::calcAnkleForce() {
 		kpAra = vector<double>(p.size());
-		for (int pidx = 0; pidx < p.size(); ++pidx) {
+		for (unsigned int pidx = 0; pidx < p.size(); ++pidx) {
 			kpAra[pidx] = calcAndApplyAnkleForce(pidx);
 		}
 	}//calcAndApplyAnkleForce
@@ -532,11 +533,11 @@ namespace particleSystem{
 			tmpStateDotVec[1] = p[idx]->getForceAcc() / p[idx]->mass;
 			tmpStateDotVec[2] = tmpStateVec[3];
 			tmpStateDotVec[3] = p[idx]->getForceAcc(1) / p[idx]->mass;
-			p[idx]->solver->lambda = idx + 1;                      //lambda only used for RK4_G general form rk4, should not be 0
+			//p[idx]->solver->setLambda(idx + 1);                      //lambda only used for RK4_G general form rk4, should not be 0
 
 			tmpNextStateVec = p[idx]->solver->Integrate(deltaT, tmpStateVec, tmpStateDotVec);
 			//tmpNextStateVec = p[idx]->solver->(*integrator)(deltaT, tmpStateVec, tmpStateDotVec);
-			p[idx]->solver->lambda = 2;
+			//p[idx]->solver->lambda = 2;
 			tmp << tmpNextStateVec[0], tmpNextStateVec[1];
 			tmpDot << tmpNextStateVec[1], Eigen::Vector3d(0, 0, 0);
 
@@ -546,7 +547,7 @@ namespace particleSystem{
 		 //solver->lambda = 2;//default value for RK4_G
 	}
 	
-	bool mySystem::handlePauseDrawClick(int& clickOnPartIDX, const Eigen::Vector3d& mClickLoc, bool idxIs5) {
+	bool mySystem::handlePauseDrawClick(int& clickOnPartIDX, const Eigen::Ref<const Eigen::Vector3d>& mClickLoc, bool idxIs5) {
 		bool sceneModded = false;
 		bool clickOnPart = false;
 		bool releasedOnPart = false;
@@ -598,7 +599,7 @@ namespace particleSystem{
 		return sceneModded;
 	}
 
-	bool mySystem::handlePauseDrawRel(int& clickOnPartIDX, const Eigen::Vector3d& mRelLoc, bool idxIs5) {
+	bool mySystem::handlePauseDrawRel(int& clickOnPartIDX, const Eigen::Ref<const Eigen::Vector3d>& mRelLoc, bool idxIs5) {
 		bool sceneModded = false;
 		bool clickOnPart = false;
 		bool releasedOnPart = false;
@@ -651,8 +652,146 @@ namespace particleSystem{
 
 	}//void calcConstraintForces();
 
+	void mySystem::buildCnstrntStructJumper() {
+		//init J, Jdot matrices; lambda, C vecs, Cdot vecs
+		int numParts = p.size() * 3;
+		int numCnstrnts = c.size();
+		Eigen::MatrixXd tmpJ(numCnstrnts, numParts);			//1 col per particle's x,y,z (3n) , 1 row per constraint(m)
+		Eigen::MatrixXd tmpJdot(numCnstrnts, numParts);			//1 col per particle's x,y,z (3n) , 1 row per constraint(m)
+		tmpJ.setZero();
+		tmpJdot.setZero();
+		Eigen::VectorXd tmpCVal(numCnstrnts);							//c evaluated
+		Eigen::VectorXd tmpCDotVal(numCnstrnts);						//c dot evaluated
+		tmpCVal.setZero();
+		tmpCDotVal.setZero();
+
+		Eigen::VectorXd tmpq(numParts);							//q vector is position of all particles
+		Eigen::VectorXd tmpqdot(numParts);						//qdot vector is velocity of all particles
+		Eigen::VectorXd tmpqdotdot(numParts);							//Q vector is forces on each particle - qdoubledot will be WQ (matrix mult)
+		tmpq.setZero();
+		tmpqdot.setZero();
+		tmpqdotdot.setZero();
+
+		Eigen::Vector3d
+			tmpVec4, tmpVec5,
+			partLocNext;
+
+		int nIdx = 0;							//index into part-related vals is nIdx, constraint-related vals is mIdx
+		for (unsigned int idx = 0; idx < p.size(); ++idx) {
+
+			int mIdx = 0;
+			double cnstDist = 99999999999;
+			int cnstIDX = -1;
+			partLocNext = p[idx]->getPosition() + (deltaT *  p[idx]->getVelocity()) + (.5 * deltaT * deltaT * p[idx]->getForceAcc());//approx location of particle next timestep if unconstrained
+																																	 //for jumping constraints
+			double tmpDist;
+			for (unsigned int cIdx = 0; cIdx < numCnstrnts; ++cIdx) {
+				//if((p[idx]->ID == c[cIdx]->p1ID) || ((p[idx]->ID != c[cIdx]->p1ID) && (p[idx]->ID ==  c[cIdx]->p2ID))){		//if particle is p1 or p2 in constraint cnstr
+				if ((p[idx]->ID == c[cIdx]->p1ID) && (p[idx]->ID == c[cIdx]->p2ID)) {		//if particle is p1 or p2 in constraint cnstr
+					tmpDist = (partLocNext - c[cIdx]->anchorPoint).norm();
+					if (cnstDist > tmpDist) {//find closest constraint to where unconstrained particle will move to next turn - use this constraint in calculation below
+						cnstDist = tmpDist;
+						cnstIDX = cIdx;
+					}
+				}
+			}//for each constraint find constraint that is closest to this particle
+			 //cout<<"part : "<<idx<<" : cnstrnt : "<<cnstIDX<<" size of constrt struct : "<<c.size()<<" next loc : "<<partLocNext<<endl;
+			if (cnstIDX == -1) {
+				continue;
+			}//means particle has no constraint, continue with particle loop
+
+			tmpq.segment<3>(nIdx) = p[idx]->getPosition();
+			tmpqdot.segment<3>(nIdx) = p[idx]->getVelocity();
+			tmpqdotdot.segment<3>(nIdx) = p[idx]->getForceAcc();
+
+			//populate per constraint/per particle structures
+
+			for (unsigned int cIdx = 0; cIdx < numCnstrnts; ++cIdx) {
+				if (cnstIDX == cIdx) { //closest path constraint
+					if ((p[idx]->ID == c[cIdx]->p1ID)) {		//if particle is p1 in constraint cnstr
+																//cout<<"\np1 calc:"<<endl;
+						tmpVec4 = c[cIdx]->calcPartialCP1(p[idx], p[c[cIdx]->p2Idx]);	//path constraint
+						tmpVec5 = c[cIdx]->calcPartialCdotP1(p[idx], p[c[cIdx]->p2Idx]);
+					}
+					else if ((p[idx]->ID != c[cIdx]->p1ID) && (p[idx]->ID == c[cIdx]->p2ID)) {		//if particle is p1 in constraint cnstr
+																									//cout<<"\np2 calc:"<<endl;
+						tmpVec4 = c[cIdx]->calcPartialCP2(p[c[cIdx]->p1Idx], p[idx]);
+						tmpVec5 = c[cIdx]->calcPartialCdotP2(p[c[cIdx]->p1Idx], p[idx]);
+					}
+				}
+				else if ((p[idx]->ID != c[cIdx]->p2ID) && (p[idx]->ID == c[cIdx]->p1ID)) {		//if particle is p1 in constraint cnstr and not a path constraint
+																								//cout<<"\np2 calc:"<<endl;
+					tmpVec4 = c[cIdx]->calcPartialCP1(p[idx], p[c[cIdx]->p2Idx]);
+					tmpVec5 = c[cIdx]->calcPartialCdotP1(p[idx], p[c[cIdx]->p2Idx]);
+				}
+				else if ((p[idx]->ID != c[cIdx]->p1ID) && (p[idx]->ID == c[cIdx]->p2ID)) {		//if particle is p2 in constraint cnstr and not a path constraint
+																								//cout<<"\np2 calc:"<<endl;
+					tmpVec4 = c[cIdx]->calcPartialCP2(p[c[cIdx]->p1Idx], p[idx]);
+					tmpVec5 = c[cIdx]->calcPartialCdotP2(p[c[cIdx]->p1Idx], p[idx]);
+				}
+				else {
+					//cout<<"\nno calc"<<endl;
+					tmpVec4.setZero();
+					tmpVec5.setZero();
+				}
+				tmpCVal[cIdx] = c[cIdx]->ks * c[cIdx]->calcCVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
+				tmpCDotVal[cIdx] = c[cIdx]->kd * c[cIdx]->calcCDotVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
+				//SPD IMPLEMENTATION TODO
+				//tmpCVal[cIdx] = c[cIdx].ks * c[cIdx].calcCValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);		//.8 = ks
+				//tmpCDotVal[cIdx] = c[cIdx].kd * c[cIdx].calcCDotValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);//.8 = kd
+
+				tmpJ.row(cIdx).segment<3>(nIdx) = tmpVec4;
+				tmpJdot.row(cIdx).segment<3>(nIdx) = tmpVec5;
+			}
+			nIdx += 3;		//increment by 3 for each particle
+		}//for each particle
+
+		 //now need to remove from J matrix every row that is completely 0, otherwise JWJt will not be invertible, and need to remove equivalent row from Jdot, component from lambda vector and component from cval and cdotval vectors
+		int matLen = 0;		//number of rows in new matrix
+		Eigen::MatrixXd tmpJ2(numCnstrnts, numParts), tmpJDot2(numCnstrnts, numParts);			//will then shrink these once we have all 0-impact constraints removed
+		Eigen::VectorXd tmpCVal2(numCnstrnts), tmpCDotVal2(numCnstrnts);
+		Eigen::VectorXd tmpJRow, tmpJdotRow;
+		for (int jidx = 0; jidx < tmpJ.rows(); ++jidx) {
+			if (tmpJ.row(jidx).norm() != 0) {
+				tmpJRow = tmpJ.row(jidx),
+					tmpJdotRow = tmpJdot.row(jidx);
+				for (int pidx = 0; pidx < numParts; ++pidx) {
+					tmpJ2(matLen, pidx) = tmpJRow[pidx];
+					tmpJDot2(matLen, pidx) = tmpJdotRow[pidx];
+				}//for each entry in row
+				tmpCVal2[matLen] = tmpCVal[jidx];
+				tmpCDotVal2[matLen] = tmpCDotVal[jidx];
+				++matLen;
+			}//if len != 0 means if non-zero entries in row
+		}//for every row of old matrix
+		if (matLen < numCnstrnts) {//if a zero-constraint row existed
+			tmpJ.resize(matLen, numParts);
+			tmpJdot.resize(matLen, numParts);
+			tmpCVal.resize(matLen);
+			tmpCDotVal.resize(matLen);
+
+			tmpJ.block(0, 0, matLen, numParts) = tmpJ2.block(0, 0, matLen, numParts);
+			tmpJdot.block(0, 0, matLen, numParts) = tmpJDot2.block(0, 0, matLen, numParts);
+
+			tmpCVal = tmpCVal2.head(matLen);
+			tmpCDotVal = tmpCDotVal2.head(matLen);
+
+		}//if needing to rebuild martices to get rid of 0-contributing constraint rows
+		 //now need to handle zero-particle cols
+
+		 //set global vals
+		J = (tmpJ);
+		Jdot = (tmpJdot);
+		q = (tmpq);
+		qdot = (tmpqdot);
+		Q = (tmpqdotdot);
+		CVal = (tmpCVal);
+		CDotVal = (tmpCDotVal);
+	}//buildCnstrntStructJumper
+
     //build constraint structure for part 5 - constraint jumping - particle is only affected by contraint that is closest to where it is moving next timestep
 	void mySystem::buildCnstrntStruct(bool multiCnstrnt){
+		if (multiCnstrnt) { buildCnstrntStructJumper(); return; }
 		//init J, Jdot matrices; lambda, C vecs, Cdot vecs
 		int numParts = p.size()*3;
 		int numCnstrnts = c.size();
@@ -672,80 +811,43 @@ namespace particleSystem{
 		tmpqdot.setZero();
 		tmpqdotdot.setZero();
 
-		Eigen::Vector3d 
-            tmpVec4, tmpVec5,
-            partLocNext;
+		Eigen::Vector3d
+			tmpVec4, tmpVec5, tmpVec42, tmpVec52;
 
 		int nIdx = 0;							//index into part-related vals is nIdx, constraint-related vals is mIdx
-		for (unsigned int idx = 0; idx < p.size(); ++idx){
-
-			int mIdx = 0;
-			double cnstDist = 99999999999;
-			int cnstIDX = -1;
-			partLocNext = p[idx]->getPosition() + (deltaT *  p[idx]->getVelocity()) + (.5 * deltaT * deltaT * p[idx]->getForceAcc());//approx location of particle next timestep if unconstrained
-            //for jumping constraints
-			double tmpDist;
-			for (unsigned int cIdx = 0; cIdx < numCnstrnts; ++cIdx){
-				//if((p[idx]->ID == c[cIdx]->p1ID) || ((p[idx]->ID != c[cIdx]->p1ID) && (p[idx]->ID ==  c[cIdx]->p2ID))){		//if particle is p1 or p2 in constraint cnstr
-				if((p[idx]->ID == c[cIdx]->p1ID)  && (p[idx]->ID ==  c[cIdx]->p2ID)){		//if particle is p1 or p2 in constraint cnstr
-					tmpDist = (partLocNext - c[cIdx]->anchorPoint).norm();
-					if (cnstDist > tmpDist) {//find closest constraint to where unconstrained particle will move to next turn - use this constraint in calculation below
-						cnstDist = tmpDist;
-						cnstIDX = cIdx;
-					}
-				}
-			}//for each constraint find constraint that is closest to this particle
-			//cout<<"part : "<<idx<<" : cnstrnt : "<<cnstIDX<<" size of constrt struct : "<<c.size()<<" next loc : "<<partLocNext<<endl;
-			if(cnstIDX == -1) {
-				//cout<<"Error calculating closest constraint to particle :"<<p[idx]<<" num constraints : "<<numCnstrnts<<endl; 
-				if(multiCnstrnt) {continue;}
-			}//means particle has no constraint, continue with particle loop
-
+		//first set up q, qdot, qdotdot vectors
+		for (unsigned int idx = 0; idx < p.size(); ++idx) {
+			//cout << "calc constraint for idx : " << idx << " part id : " << p[idx]->ID << " qIDX : " << (nIdx) << endl;
 			tmpq.segment<3>(nIdx) = p[idx]->getPosition();
 			tmpqdot.segment<3>(nIdx) = p[idx]->getVelocity();
 			tmpqdotdot.segment<3>(nIdx) = p[idx]->getForceAcc();
-
-			//populate per constraint/per particle structures
-
-			for (unsigned int cIdx = 0; cIdx < numCnstrnts; ++cIdx){
-				if(cnstIDX == cIdx){ //closest path constraint
-					if ((p[idx]->ID == c[cIdx]->p1ID)){		//if particle is p1 in constraint cnstr
-						//cout<<"\np1 calc:"<<endl;
-						tmpVec4	=  c[cIdx]->calcPartialCP1(p[idx], p[c[cIdx]->p2Idx]);	//path constraint
-						tmpVec5 =  c[cIdx]->calcPartialCdotP1(p[idx], p[c[cIdx]->p2Idx]);
-					} else if((p[idx]->ID != c[cIdx]->p1ID) && (p[idx]->ID ==  c[cIdx]->p2ID)){		//if particle is p1 in constraint cnstr
-						//cout<<"\np2 calc:"<<endl;
-						tmpVec4	= c[cIdx]->calcPartialCP2(p[c[cIdx]->p1Idx], p[idx]);
-						tmpVec5 = c[cIdx]->calcPartialCdotP2(p[c[cIdx]->p1Idx], p[idx]);
-					}
-				} 
-				else if((p[idx]->ID != c[cIdx]->p2ID) && (p[idx]->ID ==  c[cIdx]->p1ID)){		//if particle is p1 in constraint cnstr and not a path constraint
-					//cout<<"\np2 calc:"<<endl;
-					tmpVec4	= c[cIdx]->calcPartialCP1(p[idx], p[c[cIdx]->p2Idx]);
-					tmpVec5 = c[cIdx]->calcPartialCdotP1(p[idx], p[c[cIdx]->p2Idx]);
-				}
-				else if((p[idx]->ID != c[cIdx]->p1ID) && (p[idx]->ID ==  c[cIdx]->p2ID)){		//if particle is p2 in constraint cnstr and not a path constraint
-					//cout<<"\np2 calc:"<<endl;
-					tmpVec4	= c[cIdx]->calcPartialCP2(p[c[cIdx]->p1Idx], p[idx]);
-					tmpVec5 = c[cIdx]->calcPartialCdotP2(p[c[cIdx]->p1Idx], p[idx]);
-				}			
-				else {
-					//cout<<"\nno calc"<<endl;
-					tmpVec4.setZero();
-					tmpVec5.setZero();
-				}
-				tmpCVal[cIdx] = c[cIdx]->ks * c[cIdx]->calcCVal(p[c[cIdx]->p1Idx],p[c[cIdx]->p2Idx]);		
-				tmpCDotVal[cIdx] = c[cIdx]->kd * c[cIdx]->calcCDotVal(p[c[cIdx]->p1Idx],p[c[cIdx]->p2Idx]);
-                //SPD IMPLEMENTATION TODO
-				//tmpCVal[cIdx] = c[cIdx].ks * c[cIdx].calcCValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);		//.8 = ks
-				//tmpCDotVal[cIdx] = c[cIdx].kd * c[cIdx].calcCDotValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);//.8 = kd
-				
-				tmpJ.row(cIdx).segment<3>(nIdx) = tmpVec4;
-				tmpJdot.row(cIdx).segment<3>(nIdx) = tmpVec5;
-			}	
 			nIdx += 3;		//increment by 3 for each particle
-		}//for each particle
+		}
+		int p1nIDX, p2nIDX;
+		//next build constraint values for each constraint
+		for (unsigned int cIdx = 0; cIdx < numCnstrnts; ++cIdx) {
+			tmpVec4 = c[cIdx]->calcPartialCP1(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);	//path constraint
+			tmpVec5 = c[cIdx]->calcPartialCdotP1(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
+			//tmpVec42 = c[cIdx]->calcPartialCP2(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);	//path constraint
+			//tmpVec52 = c[cIdx]->calcPartialCdotP2(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
+			tmpVec42 = c[cIdx]->calcPartialCP1(p[c[cIdx]->p2Idx], p[c[cIdx]->p1Idx]);	//path constraint
+			tmpVec52 = c[cIdx]->calcPartialCdotP1(p[c[cIdx]->p2Idx], p[c[cIdx]->p1Idx]);
+			p1nIDX = 3 * c[cIdx]->p1Idx;
+			p2nIDX = 3 * c[cIdx]->p2Idx;
 
+			tmpCVal[cIdx] = c[cIdx]->ks * c[cIdx]->calcCVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
+			tmpCDotVal[cIdx] = c[cIdx]->kd * c[cIdx]->calcCDotVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
+			//SPD IMPLEMENTATION TODO
+			//tmpCVal[cIdx] = c[cIdx].ks * c[cIdx].calcCValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);		//.8 = ks
+			//tmpCDotVal[cIdx] = c[cIdx].kd * c[cIdx].calcCDotValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);//.8 = kd
+
+			tmpJ.row(cIdx).segment<3>(p1nIDX) = tmpVec4;
+			tmpJdot.row(cIdx).segment<3>(p1nIDX) = tmpVec5;
+			tmpJ.row(cIdx).segment<3>(p2nIDX) = tmpVec42;
+			tmpJdot.row(cIdx).segment<3>(p2nIDX) = tmpVec52;
+		}
+
+	
 		//now need to remove from J matrix every row that is completely 0, otherwise JWJt will not be invertible, and need to remove equivalent row from Jdot, component from lambda vector and component from cval and cdotval vectors
 		int matLen = 0;		//number of rows in new matrix
 		Eigen::MatrixXd tmpJ2(numCnstrnts, numParts), tmpJDot2(numCnstrnts, numParts);			//will then shrink these once we have all 0-impact constraints removed

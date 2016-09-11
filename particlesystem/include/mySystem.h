@@ -40,7 +40,7 @@ namespace particleSystem{
 			solver = make_shared<mySolver>(particleSystem::SolverType(0));//just need a solver, type doesn't matter
 		}
 
-		inline void buildFluidBox(int numCellX, int numCellY, int numCellZ, double _diffusion, double _viscosity, const Eigen::Vector3d& _ctrLoc, const Eigen::Vector3d& cellSize) {
+		inline void buildFluidBox(int numCellX, int numCellY, int numCellZ, double _diffusion, double _viscosity, const Eigen::Ref<const Eigen::Vector3d>& _ctrLoc, const Eigen::Ref<const Eigen::Vector3d>& cellSize) {
 			fluidBox = make_shared<myFluidBox>(numCellX, numCellY, numCellZ, _diffusion, _viscosity, deltaT, cellSize);
 			fluidBox->setCenter (Eigen::Vector3d(_ctrLoc));
 		}//buildFluidBox
@@ -51,21 +51,21 @@ namespace particleSystem{
 		virtual void handlePause() {};
 		virtual void handleTimeStep();
 
-		inline void addParticle(double _mass, const Eigen::Vector3d&  _pos, SolverType _solv) {
+		inline void addParticle(double _mass, const Eigen::Ref<const Eigen::Vector3d>&  _pos, SolverType _solv) {
 			p.push_back(std::make_shared<myParticle>(1.0, _pos, Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), _solv));
 		}
 
-		inline void addParticle(double _mass, const Eigen::Vector3d&  _pos, const Eigen::Vector3d&  _vel, SolverType _solv) {
+		inline void addParticle(double _mass, const Eigen::Ref<const Eigen::Vector3d>&  _pos, const Eigen::Ref<const Eigen::Vector3d>&  _vel, SolverType _solv) {
 			p.push_back(std::make_shared<myParticle>(1.0, _pos, _vel, Eigen::Vector3d(0, 0, 0), _solv));
 		}
 
 		void applyForcesToSystem();
 		void applySpringForcesToSystem();
 
-		void addForcesToTinkerToys(double fMult, bool msDragged, const Eigen::Vector3d& msDragDif);
-		void addForcesToMassSpringCtrl(double fMult, bool msDragged, const Eigen::Vector3d& msDragDif);
+		void addForcesToTinkerToys(double fMult, bool msDragged, const Eigen::Ref<const Eigen::Vector3d>& msDragDif);
+		void addForcesToMassSpringCtrl(double fMult, bool msDragged, const Eigen::Ref<const Eigen::Vector3d>& msDragDif);
 		void addDraggingForceTT(Eigen::Vector3d& force, double mult);
-		void addShakeForceToFluid(double fMult, const Eigen::Vector3d& msdrgVal0, const Eigen::Vector3d& msdrgVal1);
+		void addShakeForceToFluid(double fMult, const Eigen::Ref<const Eigen::Vector3d>& msdrgVal0, const Eigen::Ref<const Eigen::Vector3d>& msdrgVal1);
 		void addControlMS2(double& tsCntr, int numMSMsclSpr);
 
 		void invokeSolverDerivEval();
@@ -85,7 +85,7 @@ namespace particleSystem{
 		}
 
 		//builds paren surrounded string of eigen vec3d vals
-		inline std::string evec3dToStr(const Eigen::Vector3d& in, const char* fmt = "%.4f") {
+		inline std::string evec3dToStr(const Eigen::Ref<const Eigen::Vector3d>& in, const char* fmt = "%.4f") {
 			stringstream ss;
 			ss << "(" << buildDblStr(in(0), fmt) << "," << buildDblStr(in(1), fmt) << "," << buildDblStr(in(2), fmt) << ")";
 			return ss.str();
@@ -95,11 +95,20 @@ namespace particleSystem{
 
 		//void buildRhTrHdrn(Eigen::Vector3d& sLoc); //rhombic triacontahedron (30 sided die) - for mass spring motion project
 		//void buildMsSprMtn2(Eigen::Vector3d& sLoc); //some other mass-spring object
-		//void buildFlatCollider(double krest, double muFrict, double x, double y, double z, const Eigen::Vector3d&std::string& name, const Eigen::Vector3d& drLoc, const Eigen::Vector3d& gndLoc);
-		void buildGndCollider(double krest, double muFrict, double x, double y, double z, std::string& name, const Eigen::Vector3d& drLoc);// , const Eigen::Vector3d& gndLoc);
+		//void buildFlatCollider(double krest, double muFrict, double x, double y, double z, const Eigen::Ref<const Eigen::Vector3d>&std::string& name, const Eigen::Ref<const Eigen::Vector3d>& drLoc, const Eigen::Ref<const Eigen::Vector3d>& gndLoc);
+		void buildGndCollider(double krest, double muFrict, double x, double y, double z, std::string& name, const Eigen::Ref<const Eigen::Vector3d>& drLoc);// , const Eigen::Ref<const Eigen::Vector3d>& gndLoc);
 		void buildGlobeCollider(double krest, double muFrict, double rad, double distFromGlb);
 
-		void buildDefForces(std::string& name, double kd);
+		void mySystem::buildDefForces() {		_buildBaseDefForces(0);	}//no drag
+		void mySystem::buildDefTTForces() {		_buildBaseDefForces(dragTTFrcCoef);	}
+		void mySystem::buildDefMSForces() {		_buildBaseDefForces(dragMSFrcCoef);	}
+		void mySystem::buildDefFluidForces() {	_buildBaseDefForces(dragFluidFrcCoef);	}
+
+	private : 
+		void _buildBaseDefForces(double dCoeff);
+		void buildCnstrntStructJumper();
+	public : 
+
 		void buildInvPend(Eigen::Vector3d& sLoc);
 		void buildRollerCoasterConstraints(int id, double rad);
 		void buildAndSetCnstrnts(int part1IDX, int part2IDX, double rad, Eigen::Vector3d& center);
@@ -128,7 +137,7 @@ namespace particleSystem{
 		//conjugate gradient solver
 		Eigen::VectorXd calcConjGrad(const Eigen::Ref<const Eigen::VectorXd>& b, const Eigen::Ref<const Eigen::MatrixXd>& A, const Eigen::Ref<const Eigen::VectorXd>& f0);
 
-		bool handleSnowGlobeTimeStep(double fmult, bool msDragged, const Eigen::Vector3d& msDragVal0, const Eigen::Vector3d& msDragVal1) {
+		bool handleSnowGlobeTimeStep(double fmult, bool msDragged, const Eigen::Ref<const Eigen::Vector3d>& msDragVal0, const Eigen::Ref<const Eigen::Vector3d>& msDragVal1) {
 			bool res = msDragged;
 			//apply forces
 			applyForcesToSystem();
@@ -146,7 +155,7 @@ namespace particleSystem{
 			return res;
 		}
 
-		void handleMassSpringTimeStep(bool addCntrl, bool msClicked, bool msDragged, int numMSMsclSpr, const Eigen::Vector3d& msDragVal) {
+		void handleMassSpringTimeStep(bool addCntrl, bool msClicked, bool msDragged, int numMSMsclSpr, const Eigen::Ref<const Eigen::Vector3d>& msDragVal) {
 			//reinitialize all particles color and mass
 			reInitAllParts();
 			if (addCntrl) {//handle animation-driven control - change addCntrl to flags var
@@ -167,7 +176,7 @@ namespace particleSystem{
 			solveImpEuler4MassSpring();							//invoke implicit solver using cojugate gradient method
 		}//handleMassSpringTimeStep
 
-		void handleTTTimeStepRepel(double fmult, bool msDragged, bool jumpCnstrnt, const Eigen::Vector3d& msDragVal) {
+		void handleTTTimeStepRepel(double fmult, bool msDragged, bool jumpCnstrnt, const Eigen::Ref<const Eigen::Vector3d>& msDragVal) {
 			applyForcesToSystem();
 			if (msDragged) {		addForcesToTinkerToys(fmult, msDragged, msDragVal);		}	//adding dragged forces to system here
 			handlePartPartRepelCollision();														//handle particle-particle interraction, with repeling force if close
@@ -177,7 +186,7 @@ namespace particleSystem{
 			invokeSolverDerivEval();															//invoke derivative handler
 		}//handleTTTimeStepRepel
 
-		void handleTTTimeStep(double fmult, bool msDragged, bool jumpCnstrnt, const Eigen::Vector3d& msDragVal) {
+		void handleTTTimeStep(double fmult, bool msDragged, bool jumpCnstrnt, const Eigen::Ref<const Eigen::Vector3d>& msDragVal) {
 			applyForcesToSystem();
 			if (msDragged) { addForcesToTinkerToys(fmult, msDragged, msDragVal); }				//adding dragged forces to system here
 			handlePartPartCollision();															//handle particle-particle interraction, with repeling force if close
@@ -187,7 +196,7 @@ namespace particleSystem{
 			invokeSolverDerivEval();															//invoke derivative handler
 		}//handleTTTimeStep
 
-		bool handleInvPendTimeStep(double fmult, bool hasFluidGlobe, bool jumpCnstrnt, bool msDragged, bool calcCOM, const Eigen::Vector3d& msDragVal0, const Eigen::Vector3d& msDragVal1) {
+		bool handleInvPendTimeStep(double fmult, bool hasFluidGlobe, bool jumpCnstrnt, bool msDragged, bool calcCOM, const Eigen::Ref<const Eigen::Vector3d>& msDragVal0, const Eigen::Ref<const Eigen::Vector3d>& msDragVal1) {
 			bool res = msDragged;
 			//constrained tinker toy code here
 			applyForcesToSystem();
@@ -234,10 +243,10 @@ namespace particleSystem{
 		//void handlePlanarCollision(myCollider& col, std::shared_ptr<myParticle> part, int colType);
 		//void handleSphereCollision(myCollider& col, std::shared_ptr<myParticle> part, int colType);
 
-		bool handlePauseDrawClick(int& clickOnPartIDX, const Eigen::Vector3d& mClickLoc, bool idxIs5);
-		bool handlePauseDrawRel(int& clickOnPartIDX, const Eigen::Vector3d& mClickRel, bool idxIs5);
+		bool handlePauseDrawClick(int& clickOnPartIDX, const Eigen::Ref<const Eigen::Vector3d>& mClickLoc, bool idxIs5);
+		bool handlePauseDrawRel(int& clickOnPartIDX, const Eigen::Ref<const Eigen::Vector3d>& mClickRel, bool idxIs5);
 
-		void applyForceVecToAllPartsMsSpr(const Eigen::Vector3d& frc);
+		void applyForceVecToAllPartsMsSpr(const Eigen::Ref<const Eigen::Vector3d>& frc);
 
 		//apply all resultant constraint forces to system (qhat)
 		void applyConstraintForcesToSystem() {

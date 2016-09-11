@@ -70,26 +70,6 @@ namespace particleSystem{
 	}
 
 
-	void myFluidBox::lin_solve(int b, double* x, double* x0, double a, double c, int iter) {
-		//double cInv = 1.0 / c;
-		for (unsigned int itr = 0; itr < iter; ++itr) {
-			for (unsigned int k = 1; k < sz1i; ++k) {
-				for (unsigned int j = 1; j < sy1i; ++j) {
-					for (unsigned int i = 1; i < sx1i; ++i) {
-						x[IX(i, j, k)] = (x0[IX(i, j, k)] + a *
-										  (x[IX(i + 1, j, k)]
-										  + x[IX(i - 1, j, k)]
-										  + x[IX(i, j + 1, k)]
-										  + x[IX(i, j - 1, k)]
-										  + x[IX(i, j, k + 1)]
-										  + x[IX(i, j, k - 1)])) / c;
-					}//for i
-				}//for j
-			}//for k
-			set_bndCube(b, x);
-		}//for itr
-	}//lin solvers
-
 	//handle advection for passed arrays of velocities
 	void myFluidBox::advect(int b, double* d, double* d0, double* velocX, double* velocY, double* velocZ) {
 		double s0, s1, t0, t1, u0, u1;
@@ -347,7 +327,7 @@ namespace particleSystem{
 	//vorticity confinement - add back vorticity details lost through numerical dissipation
 	//vortN is unused array to hold calcs
 	void myFluidBox::vorticityConfinement(double* vortN) {
-		int idx, idx_ijp1k, idx_ijm1k, idx_ip1jk, idx_im1jk, idx_ijkm1, idx_ijkp1;
+		unsigned int idx, idx_ijp1k, idx_ijm1k, idx_ip1jk, idx_im1jk, idx_ijkm1, idx_ijkp1;
 		double vortEps = deltaT * .01;	//TODO change to allow for user input
 		for (unsigned int k = 1; k < sz1i; ++k) {
 			for (unsigned int j = 1; j < sy1i; ++j) {
@@ -503,7 +483,7 @@ namespace particleSystem{
 		memset(oldDensity, 0, memSetNumElems);
 	}
 
-	void myFluidBox::myFluidBoxAddForce(const Eigen::Vector3d& cellLoc, const Eigen::Vector3d& amount) {
+	void myFluidBox::myFluidBoxAddForce(const Eigen::Ref<const Eigen::Vector3d>& cellLoc, const Eigen::Ref<const Eigen::Vector3d>& amount) {
 		//cout<<"force addition location in cube :("<< cellLoc (0)<<","<< cellLoc(1) <<","<< cellLoc(2) <<")"<<endl;
 
 		int idx = IX(forceIDXBnd((int)(cellLoc(0)), sx1i,0),
@@ -520,7 +500,7 @@ namespace particleSystem{
 	}
 
 	//cellloc is a particle position - cell idx is going to be floor of each coord
-	Eigen::Vector3d myFluidBox::getVelAtCell(const Eigen::Vector3d& testLoc) {
+	Eigen::Vector3d myFluidBox::getVelAtCell(const Eigen::Ref<const Eigen::Vector3d>& testLoc) {
 		//ctrSzHalfNC == (ctr - (halfNumCell * cellSz))/cellSz
 		//cout<<ctrSzHalfNC << "\n";
 		Eigen::Vector3d tmpTestLoc = testLoc.cwiseQuotient(cellSz),

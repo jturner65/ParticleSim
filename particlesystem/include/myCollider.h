@@ -1,5 +1,5 @@
 #ifndef myCollider_h
-#define myCollider_hconst Eigen::Vector3d&
+#define myCollider_h
 
 #include <vector>
 #include <string>
@@ -15,12 +15,12 @@ namespace particleSystem{
 	public:
 		myCollider() :ID(++ID_gen), name(), colType(), drawLoc(), center(), radius(), minMaxRadius(2), planeNormal(), verts(), peq(4), intRefl(), Krest(1), muFrict(0) {}
 
-		myCollider(string _n, const Eigen::Vector3d& _drawLoc, const Eigen::Vector3d& _ctr, const Eigen::Vector3d& _rad, bool _inRefl) :							//sphere collider
+		myCollider(string _n, const Eigen::Ref<const Eigen::Vector3d>& _drawLoc, const Eigen::Ref<const Eigen::Vector3d>& _ctr, const Eigen::Ref<const Eigen::Vector3d>& _rad, bool _inRefl) :							//sphere collider
 			ID(++ID_gen), name(_n), colType(SPHERE), drawLoc(_drawLoc), center(_ctr), radius(_rad), minMaxRadius(2), planeNormal(), verts(), peq(4), intRefl(_inRefl), Krest(1) {
 			initCollider();
 		}
 
-		myCollider(string _n, const Eigen::Vector3d& _drawLoc, vector<Eigen::Vector3d> _vs, bool _inRefl) :		//flat collider
+		myCollider(string _n, const Eigen::Ref<const Eigen::Vector3d>& _drawLoc, vector<Eigen::Vector3d> _vs, bool _inRefl) :		//flat collider
 			ID(++ID_gen), name(_n), colType(FLAT), drawLoc(_drawLoc), center(), radius(), minMaxRadius(2), planeNormal(), verts(_vs), peq(4), intRefl(_inRefl), Krest(1) {
 			initCollider();
 		}
@@ -36,17 +36,17 @@ namespace particleSystem{
 		void buildPlaneNorm();		//build normal for this flat object given verts exist
 		void findPlaneEQ();
 		void findMinMaxRadius();
-		vector<Eigen::Vector3d> getPartVelNorm(const Eigen::Vector3d& partVel, const Eigen::Vector3d& norm);
+		vector<Eigen::Vector3d> getPartVelNorm(const Eigen::Ref<const Eigen::Vector3d>& partVel, const Eigen::Ref<const Eigen::Vector3d>& norm);
 
 		void handleVerletCol(std::shared_ptr<myParticle> p);
 
-		inline void setNormal(const Eigen::Vector3d& _n) { planeNormal = _n; planeNormal.normalize(); }
+		inline void setNormal(const Eigen::Ref<const Eigen::Vector3d>& _n) { planeNormal = _n; planeNormal.normalize(); }
 
-		inline double getDistFromCenter(const Eigen::Vector3d& _p, double mult) { return ((_p - center) * (mult == 0 ? 1 : ((_p[2] < center[2]) ? -mult : mult))).norm(); }
+		inline double getDistFromCenter(const Eigen::Ref<const Eigen::Vector3d>& _p, double mult) { return ((_p - center) * (mult == 0 ? 1 : ((_p[2] < center[2]) ? -mult : mult))).norm(); }
 
 		//inline Eigen::Vector3d getNormal(){	return planeNormal;}//getNormal for flat plane - need to have verts and precalculated normal
 
-		inline Eigen::Vector3d getSphereNormal(const Eigen::Vector3d& _loc) {//get normal at a particular location - no matter where inside or outside of sphere, normal built from this point and center will point in appropriate dir
+		inline Eigen::Vector3d getSphereNormal(const Eigen::Ref<const Eigen::Vector3d>& _loc) {//get normal at a particular location - no matter where inside or outside of sphere, normal built from this point and center will point in appropriate dir
 			//if sphere, normal will be either pointing out or in, colinear with line from center to _loc
 			Eigen::Vector3d normDir = (center - _loc);//either point into center if internal reflections or point out of center if not
 			double mult = ((intRefl) ? 1 : -1);

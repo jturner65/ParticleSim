@@ -15,7 +15,7 @@ namespace particleSystem{
 	class myForce {
 	public:
 		myForce(void) :ID(++ID_gen), name(""), constVal(), constVal2(), constVec(0, 0, 0), ftype(S_SCALAR) {}
-		myForce(string _n, const Eigen::Vector3d& _G, ForceType _t) :ID(++ID_gen), name(_n), constVal(0), constVal2(0), constVec(_G), ftype(_t) {}		//
+		myForce(string _n, const Eigen::Ref<const Eigen::Vector3d>& _G, ForceType _t) :ID(++ID_gen), name(_n), constVal(0), constVal2(0), constVec(_G), ftype(_t) {}		//
 		myForce(string _n, double _k, ForceType _t) :ID(++ID_gen), name(_n), constVal(_k), constVal2(0), constVec(0, 0, 0), ftype(_t) {}		//if drag, needs to be negative constant value
 		myForce(string _n, double _k) :ID(-1), name(_n), constVal(_k * (_k>0) ? 1 : -1), constVal2(0), constVec(0, 0, 0), ftype((_k>0) ? REPL : ATTR) {}						//repulsive force - dummy force, no incrementing id 
 		myForce(string _n, double _k1, double _k2) :ID(++ID_gen), name(_n), constVal(_k1), constVal2(_k2), constVec(0, 0, 0), ftype(DAMPSPRING) {}		//2 constants are always SPRING
@@ -25,6 +25,7 @@ namespace particleSystem{
 
 		//pos 0 in vector is point 0, pos 1 is point 1
 		static vector<Eigen::Vector3d> calcForceOnParticle(std::shared_ptr<myParticle> _p1, std::shared_ptr<myParticle> _p2, double d, std::shared_ptr<myForce> force);//sets quantities in particle relevant to this force application - adds force result to forceAcc
+		static vector<Eigen::Vector3d> calcReplForceOnParticles(std::shared_ptr<myParticle> _p1, std::shared_ptr<myParticle> _p2, const Eigen::Ref<const Eigen::Vector3d>& diffVec, double kVal);//sets quantities in particle relevant to this force application - adds force result to forceAcc
 
 		//ForceType getFtype(){return ftype;}
 

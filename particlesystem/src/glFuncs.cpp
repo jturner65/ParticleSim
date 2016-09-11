@@ -98,7 +98,7 @@ void DrawStringOnScreen(float x, float y, void *font, std::string s){
 		glutBitmapCharacter(font, s.at(c) );  // draw the character to the screen
 }
 
-void DrawArrow(const Eigen::Vector3d& pt, const Eigen::Vector3d& dir, double length, double thickness, double arrowthickness) {
+void DrawArrow(const Eigen::Ref<const Eigen::Vector3d>& pt, const Eigen::Ref<const Eigen::Vector3d>& dir, double length, double thickness, double arrowthickness) {
 	Eigen::Vector3d normDir = dir.normalized();
 
 	if(arrowthickness==-1) arrowthickness=2*thickness;
@@ -176,7 +176,7 @@ Eigen::Vector3d GetCameraCenterWorld() {
 	return Eigen::Vector3d(cc[0], cc[1], cc[2]);
 }
 
-Eigen::Vector3d GetPointEyeToWorld(const Eigen::Vector3d& _pt) {
+Eigen::Vector3d GetPointEyeToWorld(const Eigen::Ref<const Eigen::Vector3d>& _pt) {
 	GLdouble modelmat[16];
 
 	glGetDoublev( GL_MODELVIEW_MATRIX, modelmat);

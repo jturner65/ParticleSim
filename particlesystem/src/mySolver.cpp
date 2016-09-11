@@ -113,12 +113,6 @@ namespace particleSystem{
 		vector<Eigen::Vector3d> tmpVecK2(2, Eigen::Vector3d(0, 0, 0));
 		vector<Eigen::Vector3d> tmpVecK3(2, Eigen::Vector3d(0, 0, 0));
 		vector<Eigen::Vector3d> tmpVecK4(2, Eigen::Vector3d(0, 0, 0));
-		//vector<Eigen::Vector3d> tmpVecState1(2, Eigen::Vector3d(0,0,0));
-		//vector<Eigen::Vector3d> tmpVecState2(2, Eigen::Vector3d(0,0,0));
-		//vector<Eigen::Vector3d> tmpVecState3(2, Eigen::Vector3d(0,0,0));
-		//vector<Eigen::Vector3d> tmpVecState4(2, Eigen::Vector3d(0,0,0));
-		//if(_perPart){}//{	std::cout<<"IntegrateRK4PerPart called per part\n"<<std::endl;	}
-		//else	{		std::cout<<"IntegrateRK4PerPart called in loop\n"<<std::endl;	}
 
 		//vector<Eigen::Vector3d> tmpVecState1 = IntegrateExp_EPerPart(deltaT, _state, _stateDot);
 		tmpVecK1[0] = _state[1];		//start state 
@@ -150,14 +144,7 @@ namespace particleSystem{
 		vector<Eigen::Vector3d> tmpVecK2a(2, Eigen::Vector3d(0, 0, 0));
 		vector<Eigen::Vector3d> tmpVecK3a(2, Eigen::Vector3d(0, 0, 0));
 		vector<Eigen::Vector3d> tmpVecK4(2, Eigen::Vector3d(0, 0, 0));
-		//vector<Eigen::Vector3d> tmpVecState1(2, Eigen::Vector3d(0,0,0));
-		//vector<Eigen::Vector3d> tmpVecState2(2, Eigen::Vector3d(0,0,0));
-		//vector<Eigen::Vector3d> tmpVecState3(2, Eigen::Vector3d(0,0,0));
-		//vector<Eigen::Vector3d> tmpVecState4(2, Eigen::Vector3d(0,0,0));
-		//if(_perPart){}//{	std::cout<<"IntegrateRK4PerPart called per part\n"<<std::endl;	}
-		//else	{		std::cout<<"IntegrateRK4PerPart called in loop\n"<<std::endl;	}
-		//std::cout<<"id : "<<ID<<" lambda : "<<lambda<<endl;
-		//vector<Eigen::Vector3d> tmpVecState1 = IntegrateExp_EPerPart(deltaT, _state, _stateDot);
+
 		tmpVecK1[0] = _state[1];		//move resultant velocity into xdot position
 		tmpVecK1[1] = _stateDot[1];			//move acceleration into vdot position
 
@@ -165,15 +152,15 @@ namespace particleSystem{
 		tmpVecK2[0] = tmpVecState2[1];		//move resultant velocity into xdot position - general form uses 1 and 2
 		tmpVecK2[1] = tmpVecK1[1];			//move acceleration into vdot position
 
-		tmpVecK2a[0] = (((.5 - (1 / lambda)) * _state[1]) + ((1 / lambda) * tmpVecState2[1]));		//move resultant velocity into xdot position - general form uses 1 and 2
+		tmpVecK2a[0] = (((.5 - (1.0 / lambda)) * _state[1]) + ((1.0 / lambda) * tmpVecState2[1]));		//move resultant velocity into xdot position - general form uses 1 and 2
 		tmpVecK2a[1] = tmpVecK1[1];			//move acceleration into vdot position
 
 		vector<Eigen::Vector3d> tmpVecState3 = IntegrateExp_EPerPart((deltaT *.5), _state, tmpVecK2a);
 		tmpVecK3[0] = tmpVecState3[1];
 		tmpVecK3[1] = tmpVecK2[1];			//tmpVecK3 should just be delta part of exp euler evaluation
 
-		tmpVecK3a[0] = (((1 - (lambda / 2)) * tmpVecState2[1]) + ((lambda / 2) * tmpVecState3[1]));
-		tmpVecK3a[1] = tmpVecK2[1];			//tmpVecK3 should just be delta part of exp euler evaluation
+		tmpVecK3a[0] = (((1 - (lambda / 2.0)) * tmpVecState2[1]) + ((lambda / 2.0) * tmpVecState3[1]));
+		tmpVecK3a[1] = tmpVecK2a[1];			//tmpVecK3 should just be delta part of exp euler evaluation
 
 		vector<Eigen::Vector3d> tmpVecState4 = IntegrateExp_EPerPart(deltaT, _state, tmpVecK3a);
 		tmpVecK4[0] = tmpVecState4[1];
@@ -181,10 +168,6 @@ namespace particleSystem{
 
 		tmpVec[0] = _state[0] + deltaT * ((tmpVecK1[0] + ((4 - lambda) * tmpVecK2[0]) + (lambda * tmpVecK3[0]) + tmpVecK4[0]) / 6.0);
 		tmpVec[1] = _state[1] + deltaT * ((tmpVecK1[1] + ((4 - lambda) * tmpVecK2[1]) + (lambda * tmpVecK3[1]) + tmpVecK4[1]) / 6.0);
-
-		//below is -not- the same for each lambda - some are stable some go unstable 
-		//tmpVec[0] = _state[0] + deltaT * ((tmpVecK1[0] + ((4 - lambda) * tmpVecK2a[0]) + (lambda * tmpVecK3a[0]) + tmpVecK4[0]) / 6.0);
-		//tmpVec[1] = _state[1] + deltaT * ((tmpVecK1[1] + ((4 - lambda) * tmpVecK2a[1]) + (lambda * tmpVecK3a[1]) + tmpVecK4[1]) / 6.0);
 
 		return tmpVec;
 	}

@@ -16,9 +16,13 @@ namespace particleSystem{
 
 	static const double snowGlobStartRad = 1;			//internal snowglobe radius where snowflakes can start
 	static const double snowGlobRad = 10;
-	static const double partColDist = .1;				//potential particle collision distance
+	static const double partSqColDist = .1;				//potential particle collision distance
 	static const double globDeltaT = .01;
 	static const double epsVal = .000001;
+
+	static const double dragTTFrcCoef = -.2;			//general damping for tinker toys
+	static const double dragMSFrcCoef = -.3;			//general damping for mass spring
+	static const double dragFluidFrcCoef = -.15;		//general damping for fluids
 
 	static const double PI = atan(1.0) * 4;
 
@@ -29,8 +33,7 @@ namespace particleSystem{
 	static const int  numPosCnstIters = 300;     //# of iterations for position constraint satisfaction
 
 
-	/** Helper types for STL containers with fixed size Eigen memory allocators - from MRPT. */
-	//template <class TYPE1, class TYPE2 = TYPE1>
+	/** Helper types for STL containers with fixed size vectorizable Eigen memory allocators - from MRPT. */
 	template <class TYPE1, class TYPE2 = TYPE1>
 	struct aligned_containers {
 		typedef std::pair<TYPE1, TYPE2> pair_t;

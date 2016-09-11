@@ -65,7 +65,7 @@ namespace particleSystem{
 	}//checkCollision
 
 	//calculate the normal and tangent components of velocity(or any vector) compared to a passed normal
-	vector<Eigen::Vector3d> myCollider::getPartVelNorm(const Eigen::Vector3d& partVel, const Eigen::Vector3d& norm) {
+	vector<Eigen::Vector3d> myCollider::getPartVelNorm(const Eigen::Ref<const Eigen::Vector3d>& partVel, const Eigen::Ref<const Eigen::Vector3d>& norm) {
 		vector<Eigen::Vector3d> result(2, Eigen::Vector3d(0, 0, 0));
 		result[0] = norm * (norm.dot(partVel));//norm dir
 		result[1] = partVel - result[0];		//tan dir

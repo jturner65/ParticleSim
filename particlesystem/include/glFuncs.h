@@ -32,13 +32,13 @@ void DrawStringOnScreen(float x, float y, void *font, std::string s);
 void DrawStringOnScreen2(double x, double y, char *s);
 
 // draw an arrow made up of cylinder and cone
-void DrawArrow(const Eigen::Vector3d& pt, const Eigen::Vector3d& dir, double length, double thickness, double arrowthickness = -1);
+void DrawArrow(const Eigen::Ref<const Eigen::Vector3d>& pt, const Eigen::Ref<const Eigen::Vector3d>& dir, double length, double thickness, double arrowthickness = -1);
 // get a ray from viwpoint to the point on screen
 void GetMouseRay(double x, double y, Eigen::Vector3d& pos, Eigen::Vector3d& dir);
 // computes camera center in world coords
 Eigen::Vector3d GetCameraCenterWorld();
 // computes eye in world frame
-Eigen::Vector3d GetPointEyeToWorld(const Eigen::Vector3d& _pt);
+Eigen::Vector3d GetPointEyeToWorld(const Eigen::Ref<const Eigen::Vector3d>& _pt);
 
 // for rendering with antialiasing
 void accFrustum(GLdouble _left, GLdouble _right, GLdouble _bottom, GLdouble _top, GLdouble _near, GLdouble _far, GLdouble _pixdx, GLdouble _pixdy, GLdouble _eyedx, GLdouble _eyedy, GLdouble _focus);

@@ -150,7 +150,7 @@ void MyParticleWorld::buildRhTrHdrn(Eigen::Vector3d& sLoc, int curSystemIDX) {
 	double ks = 500, kd = 40;
 	stringstream ss;
 	//forces       
-	systems[curSystemIDX]->buildDefForces(std::string("MassSpring"), -.05);
+	systems[curSystemIDX]->buildDefForces();
 	//particles
 	for (unsigned int i = 0; i < MyParticleWorld::numRTparts; ++i) {
 		//systems[curSystemIDX]->p.push_back(std::make_shared<myParticle>(1, MyParticleWorld::rt_crnrPts[i] - Eigen::Vector3d(0, 1, 15), Eigen::Vector3d(0, 0, 0),RK4_G));
@@ -221,7 +221,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 	myCollider::ID_gen = 0;
     //tsCntr = 0;             //re-init animation control
     stringstream ss;
-    ss<<"System : "<<SceneType2str[curSystemIDX];
+    ss<<SceneType2str[curSystemIDX];
 	//initialize scene with starting conditions	
 	systems[curSystemIDX] = std::make_shared<mySystem>(ss.str(), _deltaT, numP, numF, numC);
 
@@ -231,7 +231,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 				//systems[curSystemIDX]->p.push_back(std::make_shared<myParticle>(1, Eigen::Vector3d(-3.0 + i, 8, -12), Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), particleSystem::SolverType(i)));
 				systems[curSystemIDX]->addParticle(1, Eigen::Vector3d(-3.0 + i, 8, -12), particleSystem::SolverType(i));
 			}
-			systems[curSystemIDX]->buildDefForces(std::string(SceneType2str[curSystemIDX]), 0);//no drag
+			systems[curSystemIDX]->buildDefForces();//no drag
 			//collider ground
 			systems[curSystemIDX]->buildGndCollider(.7, 0, 10, -8, 10, std::string("GroundPart1"), Eigen::Vector3d(0, -8, -12));//, Eigen::Vector3d(0, -8, -12));
 			break;}
@@ -250,7 +250,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 				systems[curSystemIDX]->addParticle(1.0, Eigen::Vector3d(x, y, z - (snowGlobRad + distFromSnowGlobe)),RK4);
 				systems[curSystemIDX]->p.back()->setColor(1, 1, 1, 1);
 			}
-			systems[curSystemIDX]->buildDefForces(std::string(SceneType2str[curSystemIDX]), -4.0);
+			systems[curSystemIDX]->buildDefFluidForces();
 			systems[curSystemIDX]->buildGndCollider(.00001, 0, 10, gndLocY, 10, std::string("GroundPart1"), Eigen::Vector3d(0, gndLocY, -12));//, Eigen::Vector3d(0, gndLocY, -12));
 			systems[curSystemIDX]->buildGlobeCollider(.00001, 0, snowGlobRad, distFromSnowGlobe);
 			int numCells = (snowGlobRad + 1) * 4;
@@ -275,7 +275,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 				systems[curSystemIDX]->addParticle(1.0, Eigen::Vector3d(x, y, z - (snowGlobRad + distFromSnowGlobe)),RK4);
 				systems[curSystemIDX]->p.back()->setColor(1, 1, 1, 1);
 			}
-			systems[curSystemIDX]->buildDefForces(std::string(SceneType2str[curSystemIDX]), -4.0);
+			systems[curSystemIDX]->buildDefFluidForces();
 			systems[curSystemIDX]->buildGndCollider(.00001, 0, 10, gndLocY, 10, std::string("GroundPart1"), Eigen::Vector3d(0, gndLocY, -12));//, Eigen::Vector3d(0, gndLocY, -12));
 			systems[curSystemIDX]->buildGlobeCollider(.00001, 0, snowGlobRad, distFromSnowGlobe);
 			int numCells = (snowGlobRad + 1) * 4;
@@ -289,7 +289,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 		case CNSTR_1 : {		//tinkertoy/bead on wire assignment
 			//systems[curSystemIDX]->p.push_back(std::make_shared<myParticle>(1, Eigen::Vector3d(2, 0, -5), Eigen::Vector3d(0, 0, 0),RK4));
 			systems[curSystemIDX]->addParticle(1, Eigen::Vector3d(2, 0, -5),RK4);
-			systems[curSystemIDX]->buildDefForces(std::string(SceneType2str[curSystemIDX]), -.3);
+			systems[curSystemIDX]->buildDefTTForces();
 			//initialize first contraint - circle wire
 			systems[curSystemIDX]->buildAndSetCnstrnts(0, 0, 2, Eigen::Vector3d(0, 0, -5));
 
@@ -300,7 +300,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 				systems[curSystemIDX]->addParticle(1, Eigen::Vector3d(2.5 + i / 2.0, 0, -5),RK4);
 				systems[curSystemIDX]->addParticle(1, Eigen::Vector3d(-2.5 - i / 2.0, 0, -5),RK4);
 			}
-			systems[curSystemIDX]->buildDefForces(std::string(SceneType2str[curSystemIDX]), -.1);
+			systems[curSystemIDX]->buildDefTTForces();
 
 			for (unsigned int i = 0; i < 4; ++i){
 				systems[curSystemIDX]->buildAndSetCnstrnts((i * 2), (i * 2), 2, Eigen::Vector3d(.5 + i / 2.0, 0, -5));
@@ -323,7 +323,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 			for (int i = 0; i < 4; ++i) {
 				systems[curSystemIDX]->addParticle(1, locList[i],RK4);
 			}
-			systems[curSystemIDX]->buildDefForces(std::string(SceneType2str[curSystemIDX]), -.1);
+			systems[curSystemIDX]->buildDefTTForces();
 			for (unsigned int i = 0; i < 4; ++i) {
 				systems[curSystemIDX]->buildAndSetCnstrnts(i, i, 2, clocList[i]);
 			}
@@ -336,7 +336,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 				//systems[curSystemIDX]->p.push_back(std::make_shared<myParticle>(1, Eigen::Vector3d((2 * sin(angle)) + (2 * ((rand() % 2 == 0) ? 1 : -1)), (2 * cos(angle)) + 2, -5), Eigen::Vector3d(0, 0, 0),RK4));
 				systems[curSystemIDX]->addParticle(1, Eigen::Vector3d((2 * sin(angle)) + (2 * ((rand() % 2 == 0) ? 1 : -1)), (2 * cos(angle)) + 2, -5),RK4);
 			}
-			systems[curSystemIDX]->buildDefForces(std::string(SceneType2str[curSystemIDX]), -.1);
+			systems[curSystemIDX]->buildDefTTForces();
 
 			for (int i = 0; i<10; ++i) { systems[curSystemIDX]->buildRollerCoasterConstraints(i, 2); }
 			//build global structures needed for constraint calculations - use part 5 version
@@ -344,7 +344,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 			break;}
         case INV_PEND : {//  inverted pendulum
 			systems[curSystemIDX]->buildInvPend(Eigen::Vector3d(0, -1, -5));   //location of particles
-			systems[curSystemIDX]->buildDefForces(std::string(SceneType2str[curSystemIDX]), -.1);
+			systems[curSystemIDX]->buildDefTTForces();
 			systems[curSystemIDX]->buildGndCollider(.7, 0, 20, -2, 20, std::string("GroundPart7"), Eigen::Vector3d(0, -2, -5));//, Eigen::Vector3d(0, -2, -5));
 			systems[curSystemIDX]->partCOM = systems[curSystemIDX]->calcAndSetCOM(0, systems[curSystemIDX]->p.size()); 
 
@@ -356,7 +356,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 					//systems[curSystemIDX]->p.push_back(std::make_shared<myParticle>(1, Eigen::Vector3d(-4 + (i*3.0), (j*-3.0) + 3.0, -5), Eigen::Vector3d(0, 0, 0), Eigen::Vector3d(0, 0, 0), particleSystem::SolverType((i * 3 + j) % (numSolvers))));
 				}
 			}
-			systems[curSystemIDX]->buildDefForces(std::string(SceneType2str[curSystemIDX]), -.1);
+			systems[curSystemIDX]->buildDefTTForces();
 			for (unsigned int i = 0; i < 3; ++i){
 				for (unsigned int j = 0; j < 3; ++j) {
 					systems[curSystemIDX]->buildAndSetCnstrnts((i * 3) + j, (i * 3) + j, 1, Eigen::Vector3d(-3 + (i*3.0), (j*-3.0) + 3.0, -5));
@@ -366,13 +366,15 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 			systems[curSystemIDX]->buildCnstrntStruct(false);
 			break;}
         case RK4_LAM_9 : {//general rk4 bead on wire w/varying lambda
+			int idx = 0;
 			for (unsigned int i = 0; i < 3; ++i) {
 				for (unsigned int j = 0; j < 3; ++j) {
 					systems[curSystemIDX]->addParticle(1, Eigen::Vector3d(-4 + (i*3.0), (j*-3.0) + 3.0, -5),RK4_G);
+					systems[curSystemIDX]->p[idx++]->solver->setLambda(idx);
 					//systems[curSystemIDX]->p.push_back(std::make_shared<myParticle>(1, Eigen::Vector3d(-4 + (i*3.0), (j*-3.0) + 3.0, -5), Eigen::Vector3d(0, 0, 0),RK4_G));
 				}
 			}
-			systems[curSystemIDX]->buildDefForces(std::string(SceneType2str[curSystemIDX]), -.1);
+			systems[curSystemIDX]->buildDefTTForces();
 			for (unsigned int i = 0; i < 3; ++i) {
 				for (unsigned int j = 0; j < 3; ++j) {
 					systems[curSystemIDX]->buildAndSetCnstrnts((i * 3) + j, (i * 3) + j, 1, Eigen::Vector3d(-3 + (i*3.0), (j*-3.0) + 3.0, -5));
@@ -389,7 +391,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
                 }
             }
 			//add gravity force
-			systems[curSystemIDX]->buildDefForces(std::string(SceneType2str[curSystemIDX]), -.1);
+			systems[curSystemIDX]->buildDefTTForces();
 			//collider ground
 			systems[curSystemIDX]->buildGndCollider(.7, 0, 20, -2, 20, std::string("GroundPart10"), Eigen::Vector3d(0, -2, -5));//, Eigen::Vector3d(0, -2, -5));
 			int numCells = 14;				//#of cells on each side of fluid box, including bounds

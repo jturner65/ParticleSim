@@ -14,18 +14,22 @@ using namespace std;
 namespace particleSystem{
 	class mySolver {
 	public:
-		typedef vector<Eigen::Vector3d>(mySolver::*IntegratorFuncPtr_old)(double, vector<Eigen::Vector3d>&, vector<Eigen::Vector3d>&);
-		IntegratorFuncPtr_old integrator_old;
 
 		typedef vector<Eigen::Vector3d>(mySolver::*IntegratorFuncPtr)(double, vector<Eigen::Vector3d>&, vector<Eigen::Vector3d>&);
 		IntegratorFuncPtr integrator;
 
-		mySolver(SolverType _t) :ID(++ID_gen), type(_t), lambda(2) { setIntegratorType(_t); }
+		mySolver(SolverType _t) :ID(++ID_gen), type(_t), lambda(2), invLam(0), lamHalf(0), hafMInvLam(0), oneMlamHalf(0) { setLambda(lambda); setIntegratorType(_t); }
 		virtual ~mySolver() {}
 
 		inline int getID() { return ID; }
 		inline SolverType getType() { return type; }
 		void setIntegratorType(SolverType type);
+
+		inline double getLambda() { return lambda; }
+		inline void setLambda(double _l) {
+			if (_l == 0) { return; }//can't equal 0, 
+			lambda = _l;  invLam = 1.0 / lambda; lamHalf = lambda/2.0, hafMInvLam = .5 - invLam, oneMlamHalf = 1.0 - lamHalf;
+		}
 
 		//for system with different solver per particle
 		//vector<Eigen::Vector3d> IntegratorEvalPerPart(double deltaT, SolverType type, vector<Eigen::Vector3d>& partState, vector<Eigen::Vector3d>& partStateDot);
@@ -49,8 +53,9 @@ namespace particleSystem{
 		static unsigned int ID_gen;
 		int ID;
 		SolverType type;
-		double lambda;                          //value for rk4 general form
 		double oldDelT;                         //for verlet integration in case time step changes
+	private:
+		double lambda, invLam, lamHalf, hafMInvLam, oneMlamHalf;                          //value for rk4 general form
 	
 	};//class mySolver
 }//particleSystem namespace

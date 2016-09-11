@@ -12,7 +12,7 @@ namespace particleSystem {
 	//boundary cell
 	class myFluidBndObj {
 	public:
-		myFluidBndObj(int _idx, const Eigen::Vector3d& _normToCtr, double _mag) : idx(_idx), norm(_normToCtr), mag(_mag) {}
+		myFluidBndObj(int _idx, const Eigen::Ref<const Eigen::Vector3d>& _normToCtr, double _mag) : idx(_idx), norm(_normToCtr), mag(_mag) {}
 		~myFluidBndObj() {}
 
 	public: //fields
@@ -29,7 +29,7 @@ namespace particleSystem {
 		eignVecTyp vortVec, accelVecX, accelVecY, accelVecZ;
 
 		myFluidBox() :ID(++ID_gen) {}//std::cout<<"building fluid box ID : "<<ID<<std::endl;	}
-		myFluidBox(int _numCellX, int _numCellY, int _numCellZ, double _diffusion, double _viscosity, double _deltaT, const Eigen::Vector3d& _cellSz) :
+		myFluidBox(int _numCellX, int _numCellY, int _numCellZ, double _diffusion, double _viscosity, double _deltaT, const Eigen::Ref<const Eigen::Vector3d>& _cellSz) :
 			ID(++ID_gen), numCellX(_numCellX), numCellY(_numCellY), numCellZ(_numCellZ), diff(_diffusion), visc(_viscosity), startLoc(0, 0, 0), sphereBnds(), ctrSzHalfNC(0, 0, 0), //sphereExtBnds(), 				//precalculated (center - sz*halfNumCell)/sz for force query for particles
 			deltaT(_deltaT), center(0, 0, 0), numCellXY(numCellX * numCellY), numCells(numCellX * numCellY * numCellZ), cellSz(_cellSz), isMesh(false), radSq(0){
 			initVecs();
@@ -76,12 +76,16 @@ namespace particleSystem {
 			Vz0 = new double[numCells];
 			isOOB = new bool[numCells];
 			vortVec.reserve(numCells);
+			vortVec.resize(numCells);
 			for (unsigned int i = 0; i < numCells; ++i) { vortVec[i].setZero(); }
 			accelVecX.reserve(numCells);
+			accelVecX.resize(numCells);
 			for (unsigned int i = 0; i < numCells; ++i) { accelVecX[i].setZero(); }
 			accelVecY.reserve(numCells);
+			accelVecY.resize(numCells);
 			for (unsigned int i = 0; i < numCells; ++i) { accelVecY[i].setZero(); }
 			accelVecZ.reserve(numCells);
+			accelVecZ.resize(numCells);
 			for (unsigned int i = 0; i < numCells; ++i) { accelVecZ[i].setZero(); }
 		}
 
@@ -117,10 +121,10 @@ namespace particleSystem {
 		}//initSphereBounds
 
 		//returns true if cell given by x,y,z encapsulates a given threshold value from the center of the fluid box
-		inline bool checkIDXAtThreshold(double thresh, int _idx, int _x, int _y, int _z, double* sq_dists, double& amtInside) {
+		inline bool checkIDXAtThreshold(double thresh, unsigned int _idx, unsigned int _x, unsigned int _y, unsigned int _z, double* sq_dists, double& amtInside) {
 			amtInside = 0;
 			double minVal = 9999999999, maxVal = -9999999999, d;
-			int idx = 0, x, y, z;
+			unsigned int idx = 0, x, y, z;
 			for (unsigned int k = 0; k < 2; ++k) {
 				z = (_z >= numCellZ-1 ? _z : _z + k);
 				for (unsigned int j = 0; j < 2; ++j) {
@@ -186,7 +190,7 @@ namespace particleSystem {
 		//inline void swap(vector<double>& a, vector<double>& b) { auto t = a;	a = b;	b = t; }
 		//inline void swap(double* a, double* b) { double* t = a;	a = b;	b = t; }
 		//set location of center of box in world coords
-		void setCenter(const Eigen::Vector3d& _ctr) { 
+		void setCenter(const Eigen::Ref<const Eigen::Vector3d>& _ctr) {
 			center<<_ctr; 
 			setStartLoc();
 			Eigen::Vector3d tmpHalfCell(halfNmCellX, halfNmCellY, halfNmCellZ);
@@ -286,7 +290,28 @@ namespace particleSystem {
 		inline void advSphDens(double* d, double* d0, double* velocX, double* velocY, double* velocZ);
 
 		//for simple box
-		inline void lin_solve(int b, double* x, double* x0, double a, double c, int iter);
+		//inline void lin_solve(int b, double* x, double* x0, double a, double c, int iter);
+		inline void lin_solve(int b, double* x, double* x0, double a, double c, unsigned int iter) {
+			//double cInv = 1.0 / c;
+			for (unsigned int itr = 0; itr < iter; ++itr) {
+				for (unsigned int k = 1; k < sz1i; ++k) {
+					for (unsigned int j = 1; j < sy1i; ++j) {
+						for (unsigned int i = 1; i < sx1i; ++i) {
+							x[IX(i, j, k)] = (x0[IX(i, j, k)] + a *
+								(x[IX(i + 1, j, k)]
+									+ x[IX(i - 1, j, k)]
+									+ x[IX(i, j + 1, k)]
+									+ x[IX(i, j - 1, k)]
+									+ x[IX(i, j, k + 1)]
+									+ x[IX(i, j, k - 1)])) / c;
+						}//for i
+					}//for j
+				}//for k
+				set_bndCube(b, x);
+			}//for itr
+		}//lin solvers
+
+
 		inline void diffuse(int b, double* x, double* xOld, double viscdiff, int iter, int _numCells);
 		inline void advect(int b, double* d, double* d0, double* velocX, double* velocY, double* velocZ);
 		inline void project(double* velocX, double* velocY, double* velocZ, double* p, double* div, int iter);
@@ -296,10 +321,10 @@ namespace particleSystem {
 
 
 		void myFluidBoxAddDensity(int x, int y, int z, double amount);
-		void myFluidBoxAddForce(const Eigen::Vector3d& cellLoc, const Eigen::Vector3d& amount);
-		Eigen::Vector3d getVelAtCell(const Eigen::Vector3d&  cellLoc);
+		void myFluidBoxAddForce(const Eigen::Ref<const Eigen::Vector3d>& cellLoc, const Eigen::Ref<const Eigen::Vector3d>& amount);
+		Eigen::Vector3d getVelAtCell(const Eigen::Ref<const Eigen::Vector3d>&  cellLoc);
 
-		std::string E3VecToStr(const Eigen::Vector3d& vec) { stringstream ss; ss << vec(0) << "," << vec(1) << "," << vec(2); return ss.str(); }
+		std::string E3VecToStr(const Eigen::Ref<const Eigen::Vector3d>& vec) { stringstream ss; ss << vec(0) << "," << vec(1) << "," << vec(2); return ss.str(); }
 
 		friend ostream& operator<<(ostream& out, const myFluidBox& fb) {
 			out << "Fluidbox ID : " << fb.ID << " #cells in X:" << fb.numCellX << " #cells in Y:" << fb.numCellY << " #cells in Z:" << fb.numCellZ << " diff : " << fb.diff << " visc : " << fb.visc;

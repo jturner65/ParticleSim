@@ -69,6 +69,18 @@ namespace particleSystem{
 		}//switch
 		return result;
 	}//calcForceOnParticle
+	//calc repulsive force
+	vector<Eigen::Vector3d> myForce::calcReplForceOnParticles(std::shared_ptr<myParticle> _p1, std::shared_ptr<myParticle> _p2, const Eigen::Ref<const Eigen::Vector3d>& diffVec, double kVal) {
+		vector<Eigen::Vector3d> result(2, Eigen::Vector3d(0, 0, 0));
+		
+		Eigen::Vector3d  v_l;
+		double lmagSq = diffVec.squaredNorm();
+		Eigen::Vector3d lnorm = diffVec.normalized();//unitlength vector of l
+		double fp = kVal * _p1->mass * _p2->mass / (lmagSq);
+		result[0] = (lnorm * fp);
+		result[1] = (lnorm * (-1 * fp));
 
+		return result;
+	}//calcForceOnParticle
 }//namespace particleSystem
 

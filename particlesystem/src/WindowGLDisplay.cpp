@@ -389,16 +389,16 @@ void WindowGLDisplay::drawParts(vector<std::shared_ptr<particleSystem::myParticl
 		glPushMatrix();
 			glTranslated(partAra[i]->getPosition()[0], partAra[i]->getPosition()[1], partAra[i]->getPosition()[2]);
 		//	glutSolidSphere(calc_partSize* (log(1 + partAra[i]->mass)), 8, 8);
-			glutSolidSphere(calc_partSize, 5, 5);
+			glutSolidSphere(calc_partSize, 4, 4);
 		glPopMatrix();
 	}//for each particle
     //if COM != Eigen::Vector3d(0,0,0), draw it
-	if ((MyParticleWorld::systems[gCurrentScene]->partCOM).norm() != 0) {
+	if ((MyParticleWorld::systems[gCurrentScene]->partCOM).norm() != 0) {//draw inv pend COM
 		glPushMatrix();
     	    glColor3f(0.5f,0.5f,0.5f);
 			glTranslated(MyParticleWorld::systems[gCurrentScene]->partCOM[0], MyParticleWorld::systems[gCurrentScene]->partCOM[1], MyParticleWorld::systems[gCurrentScene]->partCOM[2]);
-			glutSolidSphere(calc_partSize*1.5, 8, 8);
-    	    glColor3f(1.0,1.0,1.0);
+			glutSolidSphere(calc_partSize*1.5, 6, 6);
+    	    glColor3f(1.0f,1.0f,1.0f);
 			glTranslated(0,0,calc_partSize*1.5);
 			glutSolidSphere(calc_partSize, 6, 6);     
         glPopMatrix();
@@ -661,7 +661,7 @@ void WindowGLDisplay::resetCamera()
 	glLoadIdentity();
 }
 
-Eigen::Vector3d WindowGLDisplay::getNew3DPos(const Eigen::Vector3d& pos) {
+Eigen::Vector3d WindowGLDisplay::getNew3DPos(const Eigen::Ref<const Eigen::Vector3d>& pos) {
 	Eigen::Vector3d eye = GetPointEyeToWorld(mInitEye);
 	Eigen::Vector3d lookAt = GetPointEyeToWorld(mInitLookAt);
 
