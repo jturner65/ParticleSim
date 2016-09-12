@@ -285,8 +285,8 @@ namespace particleSystem {
 		}
 
 		inline void advectSphere(double* _velx, double* _velx0, double* _vely, double* _vely0, double* _velz, double* _velz0);
-		inline void projectSphere(double* velocX, double* velocY, double* velocZ, double* p, double* div, int iter);
-		inline void diffSphDens(double* x, double* xOld, double viscdiff, int iter, int _numCells);
+		inline void projectSphere(double* velocX, double* velocY, double* velocZ, double* p, double* div, unsigned int iter);
+		inline void diffSphDens(double* x, double* xOld, double viscdiff, unsigned int iter, int _numCells);
 		inline void advSphDens(double* d, double* d0, double* velocX, double* velocY, double* velocZ);
 
 		//for simple box

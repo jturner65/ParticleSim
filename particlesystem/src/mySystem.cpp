@@ -514,38 +514,30 @@ namespace particleSystem{
 		return kp;
 	}//calcAndApplyAnkleForce
 
-
 	void mySystem::invokeSolverDerivEval() {
-		//can use any solver, since every solver has access to all algorithms implemented
-		vector<Eigen::Vector3d> tmpStateVec(4, Eigen::Vector3d(0, 0, 0));
-		vector<Eigen::Vector3d> tmpStateDotVec(4, Eigen::Vector3d(0, 0, 0));
-		vector<Eigen::Vector3d> tmpNextStateVec(4, Eigen::Vector3d(0, 0, 0));
-		Eigen::VectorXd tmp (6), tmpDot(6);
-		int numParts = p.size();
+		Eigen::VectorXd state(12), stateDot(12), res(6);
+		state.setZero();
+		stateDot.setZero();
+		Eigen::VectorXd tmp(6), tmp2(6);
+		unsigned int numParts = p.size();
 		//int solverTypeToUse = (usePartSolver ? p[idx]->solveType : solveType);
-		for (int idx = 0; idx < numParts; ++idx) {
-			tmpStateVec[0] = p[idx]->getPosition();// position[0];
-			tmpStateVec[1] = p[idx]->getVelocity();
-			tmpStateVec[2] = p[idx]->getPosition(1);
-			tmpStateVec[3] = p[idx]->getVelocity(1);
+		for (unsigned int idx = 0; idx < numParts; ++idx) {
+			state.segment<6>(0) << p[idx]->getState();
+			state.segment<6>(6) << p[idx]->getState(1);
 
-			tmpStateDotVec[0] = tmpStateVec[1];
-			tmpStateDotVec[1] = p[idx]->getForceAcc() / p[idx]->mass;
-			tmpStateDotVec[2] = tmpStateVec[3];
-			tmpStateDotVec[3] = p[idx]->getForceAcc(1) / p[idx]->mass;
-			//p[idx]->solver->setLambda(idx + 1);                      //lambda only used for RK4_G general form rk4, should not be 0
+			stateDot.segment<6>(0) << p[idx]->getStateDot();
+			stateDot.segment<6>(6) << p[idx]->getStateDot(1);
 
-			tmpNextStateVec = p[idx]->solver->Integrate(deltaT, tmpStateVec, tmpStateDotVec);
-			//tmpNextStateVec = p[idx]->solver->(*integrator)(deltaT, tmpStateVec, tmpStateDotVec);
-			//p[idx]->solver->lambda = 2;
-			tmp << tmpNextStateVec[0], tmpNextStateVec[1];
-			tmpDot << tmpNextStateVec[1], Eigen::Vector3d(0, 0, 0);
+			stateDot.segment<3>(3) /= p[idx]->mass;
+			stateDot.segment<3>(9) /= p[idx]->mass;
 
-			p[idx]->advance(tmp, tmpDot);        //clears forces from force acc
-			//p[idx]->advance(tmpNextStateVec[0], tmpNextStateVec[1], Eigen::Vector3d(0, 0, 0));        //clears forces from force acc
+			res = p[idx]->solver->Integrate(deltaT, state, stateDot);
+			
+			tmp << res.segment<6>(0);
+			tmp2 << res.segment<3>(3), Eigen::Vector3d(0, 0, 0);//force isn't integrated
+			p[idx]->advance(tmp, tmp2);        //clears forces from force acc
 		}//for each particle
-		 //solver->lambda = 2;//default value for RK4_G
-	}
+	}//invokeSolverDerivEval
 	
 	bool mySystem::handlePauseDrawClick(int& clickOnPartIDX, const Eigen::Ref<const Eigen::Vector3d>& mClickLoc, bool idxIs5) {
 		bool sceneModded = false;

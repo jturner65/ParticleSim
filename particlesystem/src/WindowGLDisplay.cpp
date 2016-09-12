@@ -191,7 +191,10 @@ void WindowGLDisplay::render()
         drawSpring(springAra);
     }
 	drawCnstrnt(partAra, cnstrntAra);
-	drawParts(partAra, partRadDraw * 2, partRadDraw * 2, (gCurrentScene == BALL_DROP));
+	drawParts(partAra, partRadDraw * 2, (gCurrentScene == BALL_DROP));
+	if ((MyParticleWorld::systems[gCurrentScene]->partCOM).norm() != 0) {//draw inv pend COM
+		drawPartsCOM(partRadDraw * 2);
+	}
 	if (MyParticleWorld::systems[gCurrentScene]->flags[mySystem::showVel] && ((SNOW_GLOBE == gCurrentScene) || (MPM_FLUID == gCurrentScene) || (SEAWEED == gCurrentScene))) {
         drawFluidVel( MyParticleWorld::systems[gCurrentScene]);
     }
@@ -380,31 +383,33 @@ void WindowGLDisplay::drawCnstrnt(vector<std::shared_ptr<particleSystem::myParti
 }//drawCnstrnt
 
 //draw all particles for a particular scene
-void WindowGLDisplay::drawParts(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, double calc_partSize, double d_partSize, bool draw1stPartBlue){
+void WindowGLDisplay::drawParts(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, double calc_partSize, bool draw1stPartBlue){
+	Eigen::Vector3d pos;
 	for(unsigned int i=0; i<partAra.size(); i++){
+		pos = partAra[i]->getPosition();
 		if ((draw1stPartBlue) && (i==0)){glColor3f(0.0f, 0.0f, 1.0f);} 
 		else {
 			glColor3d(partAra[i]->color[0],partAra[i]->color[1],partAra[i]->color[2]);
 		}//
 		glPushMatrix();
-			glTranslated(partAra[i]->getPosition()[0], partAra[i]->getPosition()[1], partAra[i]->getPosition()[2]);
+			glTranslated(pos(0), pos(1), pos(2));
 		//	glutSolidSphere(calc_partSize* (log(1 + partAra[i]->mass)), 8, 8);
 			glutSolidSphere(calc_partSize, 4, 4);
 		glPopMatrix();
 	}//for each particle
-    //if COM != Eigen::Vector3d(0,0,0), draw it
-	if ((MyParticleWorld::systems[gCurrentScene]->partCOM).norm() != 0) {//draw inv pend COM
-		glPushMatrix();
-    	    glColor3f(0.5f,0.5f,0.5f);
-			glTranslated(MyParticleWorld::systems[gCurrentScene]->partCOM[0], MyParticleWorld::systems[gCurrentScene]->partCOM[1], MyParticleWorld::systems[gCurrentScene]->partCOM[2]);
-			glutSolidSphere(calc_partSize*1.5, 6, 6);
-    	    glColor3f(1.0f,1.0f,1.0f);
-			glTranslated(0,0,calc_partSize*1.5);
-			glutSolidSphere(calc_partSize, 6, 6);     
-        glPopMatrix();
-
-    }
 }//drawParts
+
+void WindowGLDisplay::drawPartsCOM(double calc_partSize) {
+	glPushMatrix();
+	glColor3f(0.5f, 0.5f, 0.5f);
+	glTranslated(MyParticleWorld::systems[gCurrentScene]->partCOM(0), MyParticleWorld::systems[gCurrentScene]->partCOM(1), MyParticleWorld::systems[gCurrentScene]->partCOM(2));
+	glutSolidSphere(calc_partSize*1.5, 6, 6);
+	glColor3f(1.0f, 1.0f, 1.0f);
+	glTranslated(0, 0, calc_partSize*1.5);
+	glutSolidSphere(calc_partSize, 6, 6);
+	glPopMatrix();
+
+}
 
 int WindowGLDisplay::handle(int event)
 {  

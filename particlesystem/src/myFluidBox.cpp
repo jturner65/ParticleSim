@@ -266,7 +266,7 @@ namespace particleSystem{
 	}//advectSphere
 
 	//diffuse density - 1 d but use sphere bnds
-	void myFluidBox::diffSphDens(double* x, double* x0, double viscdiff, int iter, int _numCells) {
+	void myFluidBox::diffSphDens(double* x, double* x0, double viscdiff, unsigned int iter, int _numCells) {
 		double a = (deltaT*viscdiff*(numCells)), c = (1 + 6 * a);
 		int idx;
 		if(a==0){
@@ -368,7 +368,7 @@ namespace particleSystem{
 		set_bndSphere3(Vx, Vy, Vz);
 	}//vorticityConfinement
 
-	//vorticity particle method
+	//vorticity particle method TODO
 	void myFluidBox::vorticityParticles() {
 		int idx, idx_ijp1k, idx_ijm1k, idx_ip1jk, idx_im1jk, idx_ijkm1, idx_ijkp1;
 		//find accelerations via finite diff
@@ -390,12 +390,12 @@ namespace particleSystem{
 		set_bndDiffVec(accelVecY);
 		set_bndDiffVec(accelVecZ);
 
-
+		//vort particle code here TODO
 
 	}//vorticityParticles
 
-	void myFluidBox::projectSphere(double* velocX, double* velocY, double* velocZ, double* p, double* div, int iter) {
-		int idx;
+	void myFluidBox::projectSphere(double* velocX, double* velocY, double* velocZ, double* p, double* div, unsigned int iter) {
+		unsigned int idx;
 		for (unsigned int k = 1; k < sz1i; ++k) {
 			for (unsigned int j = 1; j < sy1i; ++j) {
 				for (unsigned int i = 1; i < sx1i; ++i) {

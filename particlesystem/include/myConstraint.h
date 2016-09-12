@@ -37,8 +37,8 @@ namespace particleSystem{
 			Eigen::Vector3d p1p2 = p2->getPosition() - p1->getPosition();
 			double curDist = (p1p2).norm();
 			Eigen::Vector3d halfCrctVec = 0.5*(p1p2*(1 - c_Dist / curDist));
-			p1->getPosition() += halfCrctVec;
-			p2->getPosition() -= halfCrctVec;
+			p1->modPosition(halfCrctVec);
+			p2->modPosition(-1.0f * halfCrctVec);
 		}
 
 		//partials of c w/respect to x,y,z

@@ -127,7 +127,7 @@ namespace particleSystem{
 				p->setForceAcc( partAccComp[0]) ;
 				resFrc = -muFrict*partAccComp[1];       //apply to all particles
 
-				p->getVelocity().setZero();// = Eigen::Vector3d(0,0,0);//partVelComp[0];//+partVelComp[1];//should change dir of velocity
+				p->setVelocity(Eigen::Vector3d(0, 0, 0));// = Eigen::Vector3d(0,0,0);//partVelComp[0];//+partVelComp[1];//should change dir of velocity
 			}
 		}//if 1
 
@@ -164,7 +164,7 @@ namespace particleSystem{
 		if (res == 2) {//if close to intersection with sphere boundary
 			vector<Eigen::Vector3d> partVelComp = getPartVelNorm(partVel, sphereNormal);
 			//partVelComp[0] *= (-1 * Krest);//reverse direction of normal velocity
-			p->getVelocity() = ((-1 * Krest)*partVelComp[0] + partVelComp[1]);//should change dir of velocity, decrease tangent velocity for friction
+			p->setVelocity ((-1 * Krest)*partVelComp[0] + partVelComp[1]);//should change dir of velocity, decrease tangent velocity for friction
 		}//if about to hit collider
 
 		else if (res == 1) {//1 if collision via breach, 2 if collision next timestep, 3 if need to counter force due to contact
@@ -177,7 +177,7 @@ namespace particleSystem{
 				p->setPosition(newPos);
 				vector<Eigen::Vector3d> partVelComp = getPartVelNorm(partVel, sphereNormal);
 				//partVelComp[0] *= -1;//reverse direction of normal velocity
-				p->getVelocity() = (-1* partVelComp[0] + partVelComp[1]);//should change dir of velocity, for sphere zeroing tangent velocity
+				p->setVelocity (-1* partVelComp[0] + partVelComp[1]);//should change dir of velocity, for sphere zeroing tangent velocity
 			}
 		}//if 1
 		else if (res == 3) //|| (res == 2) || (res == 1)) 

@@ -47,7 +47,8 @@ public:
 	int FindPartIDXByID(vector<std::shared_ptr<myParticle>>& partAra, int id);
 	int FindCnstrntIDXByID(vector<std::shared_ptr<myConstraint>>& cnstrntAra, int id);
 	void drawFluidVel( shared_ptr<mySystem> system);
-	void drawParts(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, double calc_partSize, double d_partSize, bool draw1stPartBlue);
+	void drawParts(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, double calc_partSize, bool draw1stPartBlue);
+	void drawPartsCOM(double calc_partSize);
 	//void drawCnstrntLine(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra, vector<vector<int>>& linePointIDS, bool bindCnstr, double cnstrR);	
 	void drawCnstrnt(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra);
 	void drawSpring(vector<std::shared_ptr<particleSystem::mySpring>>& springAra);
