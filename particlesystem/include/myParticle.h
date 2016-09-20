@@ -63,32 +63,18 @@ namespace particleSystem {
 
 		inline Eigen::Vector3d getPosition() { return Eigen::Vector3d(q[0].segment<3>(0)); }
 		inline Eigen::Vector3d getPosition(int idx) { return Eigen::Vector3d(q[idx].segment<3>(0)); }
-		//inline Eigen::Vector3d& getPosition() { return position[0]; }
-		//inline Eigen::Vector3d& getPosition(int idx) { return position[idx]; }
-		//inline void modPosition(const Eigen::Ref<const Eigen::Vector3d>& _val) { position[0] += _val;   q[0].segment<3>(0) += _val;  }
-		//inline void modPosition(const Eigen::Ref<const Eigen::Vector3d>& _val, int idx) { position[idx] += _val; q[idx].segment<3>(0) += _val;  	}
-		//inline void setPosition(const Eigen::Ref<const Eigen::Vector3d>& _val) { position[0] << _val; setQ(_val, 0, 0);}// q[0].segment<3>(0) << position[0];}
-		//inline void setPosition(const Eigen::Ref<const Eigen::Vector3d>& _val, int idx) { position[idx] << _val; setQ(_val, idx, 0);}// q[idx].segment<3>(0) << position[0];}
 		inline void modPosition(const Eigen::Ref<const Eigen::Vector3d>& _val) { q[0].segment<3>(0) += _val; }
 		inline void modPosition(const Eigen::Ref<const Eigen::Vector3d>& _val, int idx) { q[idx].segment<3>(0) += _val; }
 		inline void setPosition(const Eigen::Ref<const Eigen::Vector3d>& _val) { setQ(_val, 0, 0); }// q[0].segment<3>(0) << position[0];}
 		inline void setPosition(const Eigen::Ref<const Eigen::Vector3d>& _val, int idx) { setQ(_val, idx, 0); }// q[idx].segment<3>(0) << position[0];}
 
-		//inline Eigen::Vector3d& getVelocity() { return velocity[0]; }
-		//inline Eigen::Vector3d& getVelocity(int idx) { return velocity[idx]; }
 		inline Eigen::Vector3d getVelocity() { return Eigen::Vector3d(qdot[0].segment<3>(0));}
 		inline Eigen::Vector3d getVelocity(int idx) { return Eigen::Vector3d(qdot[idx].segment<3>(0)); }
-		//inline void setVelocity(const Eigen::Ref<const Eigen::Vector3d>& _val) { velocity[0] << _val; setQDot(_val, 0, 0);  setQ(_val, 0, 3); }
-		//inline void setVelocity(const Eigen::Ref<const Eigen::Vector3d>& _val, int idx) { velocity[idx] << _val; setQDot(_val, idx, 0);  setQ(_val, idx, 3); }
 		inline void setVelocity(const Eigen::Ref<const Eigen::Vector3d>& _val) { setQDot(_val, 0, 0);  setQ(_val, 0, 3); }
 		inline void setVelocity(const Eigen::Ref<const Eigen::Vector3d>& _val, int idx) { setQDot(_val, idx, 0);  setQ(_val, idx, 3); }
 
-		//inline Eigen::Vector3d& getForceAcc() { return forceAcc[0]; }
-		//inline Eigen::Vector3d& getForceAcc(int idx) { return forceAcc[idx]; }
 		inline Eigen::Vector3d getForceAcc() { return Eigen::Vector3d(qdot[0].segment<3>(3)); }
 		inline Eigen::Vector3d getForceAcc(int idx) { return Eigen::Vector3d(qdot[idx].segment<3>(3)); }
-		//inline void setForceAcc(const Eigen::Ref<const Eigen::Vector3d>& _val) { forceAcc[0] << _val; qdot[0].segment<3>(3) << _val; }
-		//inline void setForceAcc(const Eigen::Ref<const Eigen::Vector3d>& _val, int idx) { forceAcc[idx] << _val; qdot[idx].segment<3>(3) << _val; }
 		inline void setForceAcc(const Eigen::Ref<const Eigen::Vector3d>& _val) { setQDot(_val, 0, 3);  }
 		inline void setForceAcc(const Eigen::Ref<const Eigen::Vector3d>& _val, int idx) { setQDot(_val, idx, 3); }
 

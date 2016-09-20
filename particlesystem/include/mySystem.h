@@ -107,7 +107,18 @@ namespace particleSystem{
 	private : 
 		void _buildBaseDefForces(double dCoeff);
 		void buildCnstrntStructJumper();
-	public : 
+
+		inline void calcFeedbackTerm(unsigned int cIdx) {
+			CVal(cIdx) = c[cIdx]->ks * c[cIdx]->calcCVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
+			CDotVal(cIdx) = c[cIdx]->kd * c[cIdx]->calcCDotVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
+			//SPD IMPLEMENTATION TODO
+			//CVal[cIdx] = c[cIdx].ks * c[cIdx].calcCValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);		//.8 = ks
+			//CDotVal[cIdx] = c[cIdx].kd * c[cIdx].calcCDotValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);//.8 = kd
+		}
+
+	public :
+
+		void buildCnstrntStruct(bool multiCnstrnt);
 
 		void buildInvPend(Eigen::Vector3d& sLoc);
 		void buildRollerCoasterConstraints(int id, double rad);
@@ -259,7 +270,6 @@ namespace particleSystem{
 		void calcMassAndWMat();
 
 		void calcConstraintForces();
-		void buildCnstrntStruct(bool multiCnstrnt);
 
 		friend ostream& operator<<(ostream& out, const mySystem& sys) {
 			out << "Delta t: " << sys.deltaT;// << " use particle-specific solvers? " << sys.usePartSolver << " system solver type : " << SolverType2str[sys.solveType];

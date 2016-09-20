@@ -522,11 +522,9 @@ namespace particleSystem{
 		unsigned int numParts = p.size();
 		//int solverTypeToUse = (usePartSolver ? p[idx]->solveType : solveType);
 		for (unsigned int idx = 0; idx < numParts; ++idx) {
-			state.segment<6>(0) << p[idx]->getState();
-			state.segment<6>(6) << p[idx]->getState(1);
+			state.segment<12>(0) << p[idx]->getState(), p[idx]->getState(1);
 
-			stateDot.segment<6>(0) << p[idx]->getStateDot();
-			stateDot.segment<6>(6) << p[idx]->getStateDot(1);
+			stateDot.segment<12>(0) << p[idx]->getStateDot(), p[idx]->getStateDot(1);
 
 			stateDot.segment<3>(3) /= p[idx]->mass;
 			stateDot.segment<3>(9) /= p[idx]->mass;
@@ -646,23 +644,16 @@ namespace particleSystem{
 
 	void mySystem::buildCnstrntStructJumper() {
 		//init J, Jdot matrices; lambda, C vecs, Cdot vecs
-		int numParts = p.size() * 3;
-		int numCnstrnts = c.size();
-		Eigen::MatrixXd tmpJ(numCnstrnts, numParts);			//1 col per particle's x,y,z (3n) , 1 row per constraint(m)
-		Eigen::MatrixXd tmpJdot(numCnstrnts, numParts);			//1 col per particle's x,y,z (3n) , 1 row per constraint(m)
-		tmpJ.setZero();
-		tmpJdot.setZero();
-		Eigen::VectorXd tmpCVal(numCnstrnts);							//c evaluated
-		Eigen::VectorXd tmpCDotVal(numCnstrnts);						//c dot evaluated
-		tmpCVal.setZero();
-		tmpCDotVal.setZero();
+		unsigned int numParts = p.size() * 3;
+		unsigned int numCnstrnts = c.size();
 
-		Eigen::VectorXd tmpq(numParts);							//q vector is position of all particles
-		Eigen::VectorXd tmpqdot(numParts);						//qdot vector is velocity of all particles
-		Eigen::VectorXd tmpqdotdot(numParts);							//Q vector is forces on each particle - qdoubledot will be WQ (matrix mult)
-		tmpq.setZero();
-		tmpqdot.setZero();
-		tmpqdotdot.setZero();
+		J.setZero(numCnstrnts, numParts);
+		Jdot.setZero(numCnstrnts, numParts);
+		q.setZero(numParts);
+		qdot.setZero(numParts);
+		Q.setZero(numParts);
+		CVal.setZero(numCnstrnts);
+		CDotVal.setZero(numCnstrnts);
 
 		Eigen::Vector3d
 			tmpVec4, tmpVec5,
@@ -692,9 +683,9 @@ namespace particleSystem{
 				continue;
 			}//means particle has no constraint, continue with particle loop
 
-			tmpq.segment<3>(nIdx) = p[idx]->getPosition();
-			tmpqdot.segment<3>(nIdx) = p[idx]->getVelocity();
-			tmpqdotdot.segment<3>(nIdx) = p[idx]->getForceAcc();
+			q.segment<3>(nIdx) = p[idx]->getPosition();
+			qdot.segment<3>(nIdx) = p[idx]->getVelocity();
+			Q.segment<3>(nIdx) = p[idx]->getForceAcc();
 
 			//populate per constraint/per particle structures
 
@@ -726,93 +717,39 @@ namespace particleSystem{
 					tmpVec4.setZero();
 					tmpVec5.setZero();
 				}
-				tmpCVal[cIdx] = c[cIdx]->ks * c[cIdx]->calcCVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
-				tmpCDotVal[cIdx] = c[cIdx]->kd * c[cIdx]->calcCDotVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
-				//SPD IMPLEMENTATION TODO
-				//tmpCVal[cIdx] = c[cIdx].ks * c[cIdx].calcCValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);		//.8 = ks
-				//tmpCDotVal[cIdx] = c[cIdx].kd * c[cIdx].calcCDotValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);//.8 = kd
+				calcFeedbackTerm(cIdx);
 
-				tmpJ.row(cIdx).segment<3>(nIdx) = tmpVec4;
-				tmpJdot.row(cIdx).segment<3>(nIdx) = tmpVec5;
+				J.row(cIdx).segment<3>(nIdx) = tmpVec4;
+				Jdot.row(cIdx).segment<3>(nIdx) = tmpVec5;
 			}
 			nIdx += 3;		//increment by 3 for each particle
 		}//for each particle
-
-		 //now need to remove from J matrix every row that is completely 0, otherwise JWJt will not be invertible, and need to remove equivalent row from Jdot, component from lambda vector and component from cval and cdotval vectors
-		int matLen = 0;		//number of rows in new matrix
-		Eigen::MatrixXd tmpJ2(numCnstrnts, numParts), tmpJDot2(numCnstrnts, numParts);			//will then shrink these once we have all 0-impact constraints removed
-		Eigen::VectorXd tmpCVal2(numCnstrnts), tmpCDotVal2(numCnstrnts);
-		Eigen::VectorXd tmpJRow, tmpJdotRow;
-		for (int jidx = 0; jidx < tmpJ.rows(); ++jidx) {
-			if (tmpJ.row(jidx).norm() != 0) {
-				tmpJRow = tmpJ.row(jidx),
-					tmpJdotRow = tmpJdot.row(jidx);
-				for (int pidx = 0; pidx < numParts; ++pidx) {
-					tmpJ2(matLen, pidx) = tmpJRow[pidx];
-					tmpJDot2(matLen, pidx) = tmpJdotRow[pidx];
-				}//for each entry in row
-				tmpCVal2[matLen] = tmpCVal[jidx];
-				tmpCDotVal2[matLen] = tmpCDotVal[jidx];
-				++matLen;
-			}//if len != 0 means if non-zero entries in row
-		}//for every row of old matrix
-		if (matLen < numCnstrnts) {//if a zero-constraint row existed
-			tmpJ.resize(matLen, numParts);
-			tmpJdot.resize(matLen, numParts);
-			tmpCVal.resize(matLen);
-			tmpCDotVal.resize(matLen);
-
-			tmpJ.block(0, 0, matLen, numParts) = tmpJ2.block(0, 0, matLen, numParts);
-			tmpJdot.block(0, 0, matLen, numParts) = tmpJDot2.block(0, 0, matLen, numParts);
-
-			tmpCVal = tmpCVal2.head(matLen);
-			tmpCDotVal = tmpCDotVal2.head(matLen);
-
-		}//if needing to rebuild martices to get rid of 0-contributing constraint rows
-		 //now need to handle zero-particle cols
-
-		 //set global vals
-		J = (tmpJ);
-		Jdot = (tmpJdot);
-		q = (tmpq);
-		qdot = (tmpqdot);
-		Q = (tmpqdotdot);
-		CVal = (tmpCVal);
-		CDotVal = (tmpCDotVal);
 	}//buildCnstrntStructJumper
 
     //build constraint structure for part 5 - constraint jumping - particle is only affected by contraint that is closest to where it is moving next timestep
 	void mySystem::buildCnstrntStruct(bool multiCnstrnt){
 		if (multiCnstrnt) { buildCnstrntStructJumper(); return; }
 		//init J, Jdot matrices; lambda, C vecs, Cdot vecs
-		int numParts = p.size()*3;
-		int numCnstrnts = c.size();
-		Eigen::MatrixXd tmpJ(numCnstrnts, numParts);			//1 col per particle's x,y,z (3n) , 1 row per constraint(m)
-		Eigen::MatrixXd tmpJdot(numCnstrnts,numParts);			//1 col per particle's x,y,z (3n) , 1 row per constraint(m)
-		tmpJ.setZero();
-		tmpJdot.setZero();
-		Eigen::VectorXd tmpCVal(numCnstrnts);							//c evaluated
-		Eigen::VectorXd tmpCDotVal(numCnstrnts);						//c dot evaluated
-		tmpCVal.setZero();
-		tmpCDotVal.setZero();
+		unsigned int numParts = p.size()*3;
+		unsigned int numCnstrnts = c.size();
 
-		Eigen::VectorXd tmpq(numParts);							//q vector is position of all particles
-		Eigen::VectorXd tmpqdot(numParts);						//qdot vector is velocity of all particles
-		Eigen::VectorXd tmpqdotdot(numParts);							//Q vector is forces on each particle - qdoubledot will be WQ (matrix mult)
-		tmpq.setZero();
-		tmpqdot.setZero();
-		tmpqdotdot.setZero();
+		J.setZero(numCnstrnts, numParts);
+		Jdot.setZero(numCnstrnts, numParts);
+		q.setZero(numParts);
+		qdot.setZero(numParts);
+		Q.setZero(numParts);
+		CVal.setZero(numCnstrnts);
+		CDotVal.setZero(numCnstrnts);
 
-		Eigen::Vector3d
-			tmpVec4, tmpVec5, tmpVec42, tmpVec52;
+		Eigen::Vector3d	tmpVec4, tmpVec5, tmpVec42, tmpVec52;
 
 		int nIdx = 0;							//index into part-related vals is nIdx, constraint-related vals is mIdx
 		//first set up q, qdot, qdotdot vectors
 		for (unsigned int idx = 0; idx < p.size(); ++idx) {
 			//cout << "calc constraint for idx : " << idx << " part id : " << p[idx]->ID << " qIDX : " << (nIdx) << endl;
-			tmpq.segment<3>(nIdx) = p[idx]->getPosition();
-			tmpqdot.segment<3>(nIdx) = p[idx]->getVelocity();
-			tmpqdotdot.segment<3>(nIdx) = p[idx]->getForceAcc();
+			q.segment<3>(nIdx) = p[idx]->getPosition();
+			qdot.segment<3>(nIdx) = p[idx]->getVelocity();
+			Q.segment<3>(nIdx) = p[idx]->getForceAcc();
 			nIdx += 3;		//increment by 3 for each particle
 		}
 		int p1nIDX, p2nIDX;
@@ -820,68 +757,19 @@ namespace particleSystem{
 		for (unsigned int cIdx = 0; cIdx < numCnstrnts; ++cIdx) {
 			tmpVec4 = c[cIdx]->calcPartialCP1(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);	//path constraint
 			tmpVec5 = c[cIdx]->calcPartialCdotP1(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
-			//tmpVec42 = c[cIdx]->calcPartialCP2(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);	//path constraint
-			//tmpVec52 = c[cIdx]->calcPartialCdotP2(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
 			tmpVec42 = c[cIdx]->calcPartialCP1(p[c[cIdx]->p2Idx], p[c[cIdx]->p1Idx]);	//path constraint
 			tmpVec52 = c[cIdx]->calcPartialCdotP1(p[c[cIdx]->p2Idx], p[c[cIdx]->p1Idx]);
 			p1nIDX = 3 * c[cIdx]->p1Idx;
 			p2nIDX = 3 * c[cIdx]->p2Idx;
 
-			tmpCVal[cIdx] = c[cIdx]->ks * c[cIdx]->calcCVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
-			tmpCDotVal[cIdx] = c[cIdx]->kd * c[cIdx]->calcCDotVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
-			//SPD IMPLEMENTATION TODO
-			//tmpCVal[cIdx] = c[cIdx].ks * c[cIdx].calcCValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);		//.8 = ks
-			//tmpCDotVal[cIdx] = c[cIdx].kd * c[cIdx].calcCDotValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);//.8 = kd
-
-			tmpJ.row(cIdx).segment<3>(p1nIDX) = tmpVec4;
-			tmpJdot.row(cIdx).segment<3>(p1nIDX) = tmpVec5;
-			tmpJ.row(cIdx).segment<3>(p2nIDX) = tmpVec42;
-			tmpJdot.row(cIdx).segment<3>(p2nIDX) = tmpVec52;
+			calcFeedbackTerm(cIdx);
+			//col for each particle is 3*constraint's pidx, row for each particle is constraint idx 
+			J.row(cIdx).segment<3>(p1nIDX) = tmpVec4;
+			Jdot.row(cIdx).segment<3>(p1nIDX) = tmpVec5;
+			J.row(cIdx).segment<3>(p2nIDX) = tmpVec42;
+			Jdot.row(cIdx).segment<3>(p2nIDX) = tmpVec52;
 		}
 
-	
-		//now need to remove from J matrix every row that is completely 0, otherwise JWJt will not be invertible, and need to remove equivalent row from Jdot, component from lambda vector and component from cval and cdotval vectors
-		int matLen = 0;		//number of rows in new matrix
-		Eigen::MatrixXd tmpJ2(numCnstrnts, numParts), tmpJDot2(numCnstrnts, numParts);			//will then shrink these once we have all 0-impact constraints removed
-		Eigen::VectorXd tmpCVal2(numCnstrnts), tmpCDotVal2(numCnstrnts);
-		Eigen::VectorXd tmpJRow, tmpJdotRow;
-		for(int jidx = 0; jidx < tmpJ.rows(); ++jidx){
-			if (tmpJ.row(jidx).norm() != 0){
-				tmpJRow = tmpJ.row(jidx),
-				tmpJdotRow = tmpJdot.row(jidx);
-				for(int pidx = 0; pidx < numParts; ++pidx){
-					tmpJ2(matLen,pidx) = tmpJRow[pidx];
-					tmpJDot2(matLen,pidx) = tmpJdotRow[pidx];
-				}//for each entry in row
-				tmpCVal2[matLen] = tmpCVal[jidx];
-				tmpCDotVal2[matLen] = tmpCDotVal[jidx];
-				++matLen;
-			}//if len != 0 means if non-zero entries in row
-		}//for every row of old matrix
-		if(matLen < numCnstrnts){//if a zero-constraint row existed
-			tmpJ.resize(matLen, numParts);
-			tmpJdot.resize(matLen, numParts);
-			tmpCVal.resize(matLen);
-			tmpCDotVal.resize(matLen);
-
-			tmpJ.block(0, 0, matLen, numParts) = tmpJ2.block(0, 0, matLen, numParts);
-			tmpJdot.block(0, 0, matLen, numParts) = tmpJDot2.block(0, 0, matLen, numParts);
-
-			tmpCVal = tmpCVal2.head(matLen);
-			tmpCDotVal = tmpCDotVal2.head(matLen);
-
-		}//if needing to rebuild martices to get rid of 0-contributing constraint rows
-		//now need to handle zero-particle cols
-
-		//set global vals
-		J = (tmpJ);
-		Jdot = (tmpJdot);
-		q = (tmpq);
-		qdot = (tmpqdot);
-		Q = (tmpqdotdot);
-		CVal = (tmpCVal); 
-		CDotVal = (tmpCDotVal);
-		
 	}//void buildConstraintStructure();
 
 	void mySystem::handleTimeStep() {
