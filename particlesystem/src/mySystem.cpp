@@ -755,19 +755,15 @@ namespace particleSystem{
 		int p1nIDX, p2nIDX;
 		//next build constraint values for each constraint
 		for (unsigned int cIdx = 0; cIdx < numCnstrnts; ++cIdx) {
-			tmpVec4 = c[cIdx]->calcPartialCP1(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);	//path constraint
-			tmpVec5 = c[cIdx]->calcPartialCdotP1(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
-			tmpVec42 = c[cIdx]->calcPartialCP1(p[c[cIdx]->p2Idx], p[c[cIdx]->p1Idx]);	//path constraint
-			tmpVec52 = c[cIdx]->calcPartialCdotP1(p[c[cIdx]->p2Idx], p[c[cIdx]->p1Idx]);
 			p1nIDX = 3 * c[cIdx]->p1Idx;
 			p2nIDX = 3 * c[cIdx]->p2Idx;
 
 			calcFeedbackTerm(cIdx);
 			//col for each particle is 3*constraint's pidx, row for each particle is constraint idx 
-			J.row(cIdx).segment<3>(p1nIDX) = tmpVec4;
-			Jdot.row(cIdx).segment<3>(p1nIDX) = tmpVec5;
-			J.row(cIdx).segment<3>(p2nIDX) = tmpVec42;
-			Jdot.row(cIdx).segment<3>(p2nIDX) = tmpVec52;
+			J.row(cIdx).segment<3>(p1nIDX) = c[cIdx]->calcPartialCP1(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
+			Jdot.row(cIdx).segment<3>(p1nIDX) = c[cIdx]->calcPartialCdotP1(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
+			J.row(cIdx).segment<3>(p2nIDX) = c[cIdx]->calcPartialCP1(p[c[cIdx]->p2Idx], p[c[cIdx]->p1Idx]);
+			Jdot.row(cIdx).segment<3>(p2nIDX) = c[cIdx]->calcPartialCdotP1(p[c[cIdx]->p2Idx], p[c[cIdx]->p1Idx]);
 		}
 
 	}//void buildConstraintStructure();
