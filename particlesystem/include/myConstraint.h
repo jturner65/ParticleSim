@@ -41,15 +41,38 @@ namespace particleSystem{
 			p2->modPosition(-1.0f * halfCrctVec);
 		}
 
+		//returns either the anchor point or the position of p1 - p1 is the "ankle" for p2->p1 constraint if no anchored
+		inline Eigen::Vector3d getCurAnklePoint() { return ((p2ID != p1ID) ? p1->getPosition() : anchorPoint); }
+		inline Eigen::Vector3d getInitAnklePoint() { return ((p2ID != p1ID) ? p1->initPos : anchorPoint); }
+
+
+		//returns distance from initial position for "pendulum" point
+		inline Eigen::Vector3d getPendDistFromInit() {
+			if (p2ID != p1ID) {
+				return ((p2->getPosition() - p1->getPosition()) - (p2->initPos - p1->initPos));
+			} else {
+				return (p2->getPosition() - p2->initPos);
+			}
+		}
+		//returns either the anchor point or the position of p1 - p1 is the "ankle" for p2->p1 constraint if no anchored
+		inline Eigen::Vector3d getCurPendVel() { if (p2ID == p1ID) { return p2->getVelocity(); }return (p2->getVelocity() - p1->getVelocity()); }
+		
+
 		//partials of c w/respect to x,y,z
+		inline Eigen::Vector3d calcPartialCP1() { return p1->getPosition() - ((p2ID != p1ID) ? p2->getPosition() : anchorPoint); }			//calculate the partial derivative of C w/respect to x,y,z between 2 particles - eq; -1:id of dummy part
+		inline Eigen::Vector3d calcPartialCP2() { return ((p2ID != p1ID) ? p2->getPosition() : anchorPoint) - p1->getPosition(); }														//calculate the partial derivative of C w/respect to x - eq = -partCP1Xval
+		inline Eigen::Vector3d calcPartialCdotP1() { if (p2ID == p1ID) { return p1->getVelocity(); }return (p1->getVelocity() - p2->getVelocity()); }//calculate the partial derivative of C w/respect to x - eq
+		inline Eigen::Vector3d calcPartialCdotP2() { if (p2ID == p1ID) { return -1*p1->getVelocity(); }return (p2->getVelocity() - p1->getVelocity()); }			//calculate the partial derivative of C w/respect to x - eq = -partCdotP1Xval
+
 		inline Eigen::Vector3d calcPartialCP1(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) { return p1->getPosition() - ((p2ID != p1ID) ? p2->getPosition() : anchorPoint); }			//calculate the partial derivative of C w/respect to x,y,z between 2 particles - eq; -1:id of dummy part
-		inline Eigen::Vector3d calcPartialCP2(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) { return -1 * calcPartialCP1(p1, p2); }														//calculate the partial derivative of C w/respect to x - eq = -partCP1Xval
-		//partials of cdot w/respect to x,y,z
+		inline Eigen::Vector3d calcPartialCP2(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) { return -1 * calcPartialCP1(p1, p2); }														//calculate the partial derivative of C w/respect to x - eq = -partCP1Xval																																																			//partials of cdot w/respect to x,y,z
 		inline Eigen::Vector3d calcPartialCdotP1(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) {if (p2ID == p1ID) { return p1->getVelocity(); }return (p1->getVelocity() - p2->getVelocity());}//calculate the partial derivative of C w/respect to x - eq
 		inline Eigen::Vector3d calcPartialCdotP2(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) { return -1 * calcPartialCdotP1(p1, p2); }			//calculate the partial derivative of C w/respect to x - eq = -partCdotP1Xval
 
 		void setP1(std::shared_ptr<myParticle> _p, int _pIdx1);
 		void setP2(std::shared_ptr<myParticle> _p, int _pIdx2);
+
+
 
 		friend ostream& operator<<(ostream& out, const myConstraint& c) {
 			out << "Cnstrnt ID :" << c.ID << " Name : " << c.name << " Type : " << ConstraintType2str[c.c_Type] << " Part 1 : " << c.p1ID << " | Part 2 : " << c.p2ID;

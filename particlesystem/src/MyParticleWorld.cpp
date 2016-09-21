@@ -343,7 +343,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 			systems[curSystemIDX]->buildCnstrntStruct(true);
 			break;}
         case INV_PEND : {//  inverted pendulum
-			systems[curSystemIDX]->buildInvPend(Eigen::Vector3d(0, -1, -5));   //location of particles
+			systems[curSystemIDX]->buildInvPendChain(Eigen::Vector3d(0, -2, -5), 4);   //location inverted pend
 			systems[curSystemIDX]->buildDefTTForces();
 			systems[curSystemIDX]->buildGndCollider(.7, 0, 20, -2, 20, std::string("GroundPart7"), Eigen::Vector3d(0, -2, -5));//, Eigen::Vector3d(0, -2, -5));
 			systems[curSystemIDX]->partCOM = systems[curSystemIDX]->calcAndSetCOM(0, systems[curSystemIDX]->p.size()); 
@@ -384,21 +384,21 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 			systems[curSystemIDX]->buildCnstrntStruct(false);
             break;}
         case SEAWEED : {//  seaweed field - 3 x 4 array of particle "poles" inv pendulum
-
-			for(int xLoc = -2; xLoc < 3; ++xLoc){
+			int stLoc = -2;
+			int seaWeedWidth = 6;			//width of "seaweed" patch
+			for(int xLoc = stLoc; xLoc < stLoc + seaWeedWidth; ++xLoc){
                 for (int zLoc = -6; zLoc < -3; ++zLoc){
-					systems[curSystemIDX]->buildInvPend(Eigen::Vector3d(xLoc, -1, zLoc));   //location of first particle
+					systems[curSystemIDX]->buildInvPendChain(Eigen::Vector3d(xLoc, -2, zLoc),10);   //location of seaweed
                 }
             }
 			//add gravity force
 			systems[curSystemIDX]->buildDefTTForces();
 			//collider ground
-			systems[curSystemIDX]->buildGndCollider(.7, 0, 20, -2, 20, std::string("GroundPart10"), Eigen::Vector3d(0, -2, -5));//, Eigen::Vector3d(0, -2, -5));
+			systems[curSystemIDX]->buildGndCollider(.2, 0, 20, -2, 20, std::string("GroundPart10"), Eigen::Vector3d(0, -2, -5));//, Eigen::Vector3d(0, -2, -5));
 			int numCells = 14;				//#of cells on each side of fluid box, including bounds
-			int seaWeedWidth = 6;			//width of "seaweed" patch
 			double cellDim = (seaWeedWidth+1) / (.5*numCells);
-			systems[curSystemIDX]->buildFluidBox(numCells, numCells, numCells, .0012, 0.01, Eigen::Vector3d(0, 2, -5), Eigen::Vector3d(cellDim, cellDim, cellDim));
-			systems[curSystemIDX]->fluidBox->radSq = 6 * 6;
+			systems[curSystemIDX]->buildFluidBox(numCells, numCells, numCells, .002, 0.1, Eigen::Vector3d(0, 2, -5), Eigen::Vector3d(cellDim, cellDim, cellDim));
+			systems[curSystemIDX]->fluidBox->radSq = seaWeedWidth * seaWeedWidth;
             break;}
         case MSPR_MTN_PROJ : {//        mass spring motion - final project for cs7492
 			buildRhTrHdrn(Eigen::Vector3d(0, -1, -15), curSystemIDX);
@@ -464,7 +464,7 @@ void MyParticleWorld::handleTimeStep(int curSystemIDX) {
         case SEAWEED :
         case INV_PEND ://inv pendulum
             { 				
-				double fmult = ((curSystemIDX == SEAWEED) ? .1 : 20000);
+				double fmult = ((curSystemIDX == SEAWEED) ? .01 : 20000);
 				MyParticleWorld::flags[MyParticleWorld::msDragged] = sys->handleInvPendTimeStep(fmult, (curSystemIDX == SEAWEED), false, MyParticleWorld::flags[MyParticleWorld::msDragged], (curSystemIDX != SEAWEED), MyParticleWorld::msDragVal[0], MyParticleWorld::msDragVal[1]);
 			break;}
  	    default : {return;}//exit method if no appropriate current scene number

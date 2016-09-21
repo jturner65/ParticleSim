@@ -351,7 +351,7 @@ namespace particleSystem{
 			f.push_back(std::make_shared<myForce>(str2, dCoeff, S_VECTOR));
 		}
 	}
-
+	//part 1 is lower idx than part 2
 	void mySystem::buildAndSetCnstrnts(int part1IDX, int part2IDX, double rad, Eigen::Vector3d& center) {
 		string name;
 		if (rad == -1) { rad = dist2Parts(part1IDX, part2IDX);	name = "CircleBarbellConstraint"; }			//part1IDX != part2IDX;
@@ -364,20 +364,25 @@ namespace particleSystem{
 	}
 
 	//build single inverted pendulum
-	void mySystem::buildInvPend(Eigen::Vector3d& sLoc) {
+	void mySystem::buildInvPendChain(Eigen::Vector3d& sLoc, int numParts) {
 		myParticle::ID_gen = p.size();
-		for (int pIdx = 0; pIdx < 4; ++pIdx) {//add 4 new particles for single "inv pendulum"
-
-			addParticle(1.0, Eigen::Vector3d(sLoc[0], sLoc[1] + pIdx, sLoc[2]), RK4);
-			p.back()->mass = 1 + (5 - pIdx / 10.0);
+		double offSet = 4.0/(1.0*numParts);
+		int stPloc = p.size(), stCloc = c.size();
+		for (int pIdx = 0; pIdx < numParts; ++pIdx) {//add 4 new particles for single "inv pendulum"
+			addParticle(1.0, Eigen::Vector3d(sLoc[0], sLoc[1] + ((pIdx+1) * offSet), sLoc[2]), RK4);
+			p.back()->mass = 1 + (5 - (pIdx + 1) * offSet);
 			if (0 == pIdx) {
-				buildAndSetCnstrnts(p.size() - 1, p.size() - 1, 1, Eigen::Vector3d(sLoc[0], sLoc[1] - 1, sLoc[2]));	            //first recent particle
+				buildAndSetCnstrnts(p.size() - 1, p.size() - 1, offSet, Eigen::Vector3d(sLoc[0], sLoc[1], sLoc[2]));	            //first recent particle
 				c.back()->drawCnstrPath = false;                                               //don't draw circle for first constraint of inverted pendulum
-			}
-			else {
+			} else {
 				buildAndSetCnstrnts(p.size() - 2, p.size() - 1, -1, p[p.size() - 1]->getPosition());
 			}
 		}
+		//vector<std::shared_ptr<myParticle>> _p(p.begin() + stPloc, p.begin() + stPloc + numParts);
+		vector<std::shared_ptr<myConstraint>> _c(c.begin() + stCloc, c.begin() + stCloc + numParts);
+
+		invPend.push_back(std::make_shared<myInvPend>(p, stPloc, stPloc + numParts,_c));
+
 	}//buildInvPend
 
 	void mySystem::buildRollerCoasterConstraints(int id, double rad) {
@@ -494,25 +499,57 @@ namespace particleSystem{
 
 	//used for inv pendulum
 	void mySystem::calcAnkleForce() {
+		//use constraint ara instead of particles to have access to length
 		kpAra = vector<double>(p.size());
-		for (unsigned int pidx = 0; pidx < p.size(); ++pidx) {
-			kpAra[pidx] = calcAndApplyAnkleForce(pidx);
+		for (unsigned int cidx = 0; cidx < c.size(); ++cidx) {
+			kpAra[cidx] = calcAndApplyAnkleForce(cidx);
 		}
+
+		//
+		//
+		//for (unsigned int pidx = 0; pidx < p.size(); ++pidx) {
+		//	kpAra[pidx] = calcAndApplyAnkleForce(pidx);
+		//}
 	}//calcAndApplyAnkleForce
 
-	//for inv pend calculate and apply appropriate ankle forces to counteract forces on constrained particle, return kp (with kd = 1/5 * deltat * kp)
-	double mySystem::calcAndApplyAnkleForce(int pidx) {
-		//assume constraints length 1
-		double kp = 0;          
-		Eigen::Vector3d tmpThet = (p[pidx]->initPos - p[pidx]->getPosition() + (.1 * p[pidx]->getVelocity())); //vector of positions and velocities
-		double lenFacc = p[pidx]->getForceAcc().norm(),
-			lenThet = tmpThet.norm();
+	 //for inv pend calculate and apply appropriate "ankle" forces to counteract forces on constrained particle, return kp (with kd = 1/5 * deltat * kp)
+	double mySystem::calcAndApplyAnkleForce(int cIdx) {
+		//assume constraints length 1 _NO_ TODO fix this - need to measure constraint length
+		//inline Eigen::Vector3d getCurAnklePoint() { return ((p2ID != p1ID) ? p1->getPosition() : anchorPoint); }
+		//inline Eigen::Vector3d getInitAnklePoint() { return ((p2ID != p1ID) ? p1->initPos : anchorPoint); }
+
+
+		double kp = 0, cLen = c[cIdx]->c_Dist;
+		//apply correcting force to particle 2 idx - applied at particle 1 (treating like "ankle" joint)
+		int pIdx = c[cIdx]->p2Idx;
+		Eigen::Vector3d 
+			//ankleDisp = (c[cIdx]->getCurAnklePoint() - c[cIdx]->getInitAnklePoint()),				//displacement of ankle (base particle/anchor point) from init position
+			//curInitDisp = p[pIdx]->initPos + ankleDisp,												//current displacement of initial/target position of pendulum body
+			dispFromInit = c[cIdx]->getPendDistFromInit(),
+			tmpThet = dispFromInit +
+			(.1 * c[cIdx]->getCurPendVel()); //vector of positions and velocities
+		double lenFacc = p[pIdx]->getForceAcc().norm(),
+			lenThet = tmpThet.norm() / cLen;				//actaully arcsin, but we are assuming that this is small so sin(thet) ~= thet
 		kp = (0 == lenThet ? 0 : lenFacc * 1.1 / lenThet);
 		//kp *= 1;
-		Eigen::Vector3d newForce = (0 == kp ? Eigen::Vector3d(0, 0, 0) : -kp * lenThet * (p[pidx]->getForceAcc().normalized()));
-		p[pidx]->applyForce(newForce);       //should be 0
+		Eigen::Vector3d newForce = (0 == kp ? Eigen::Vector3d(0, 0, 0) : -kp * lenThet * (p[pIdx]->getForceAcc().normalized()));
+		p[pIdx]->applyForce(newForce);       //should be 0
 		return kp;
 	}//calcAndApplyAnkleForce
+
+	//for inv pend calculate and apply appropriate "ankle" forces to counteract forces on constrained particle, return kp (with kd = 1/5 * deltat * kp)
+	//double mySystem::calcAndApplyAnkleForce(int pidx, double cLen) {
+	//	assume constraints length 1 _NO_ TODO fix this - need to measure constraint length
+	//	double kp = 0;          
+	//	Eigen::Vector3d tmpThet = (p[pidx]->initPos - p[pidx]->getPosition() + (.1 * p[pidx]->getVelocity())); //vector of positions and velocities
+	//	double lenFacc = p[pidx]->getForceAcc().norm(),
+	//		lenThet = tmpThet.norm();
+	//	kp = (0 == lenThet ? 0 : lenFacc * 1.1 / lenThet);
+	//	kp *= 1;
+	//	Eigen::Vector3d newForce = (0 == kp ? Eigen::Vector3d(0, 0, 0) : -kp * lenThet * (p[pidx]->getForceAcc().normalized()));
+	//	p[pidx]->applyForce(newForce);       //should be 0
+	//	return kp;
+	//}//calcAndApplyAnkleForce
 
 	void mySystem::invokeSolverDerivEval() {
 		Eigen::VectorXd state(12), stateDot(12), res(6);
@@ -633,13 +670,9 @@ namespace particleSystem{
 
 	//solve matrix eqs, once they are built, for lambda
 	void mySystem::calcConstraintForces(){
-		Eigen::MatrixXd JW = J*W;
-		Eigen::MatrixXd Jtrans = J.transpose();
-
-		lambda = (JW * Jtrans).ldlt().solve(-Jdot*qdot - JW * Q - CVal - CDotVal);
-
-		Qhat = Jtrans * lambda;				//constraint force applied
-
+		Eigen::MatrixXd JW = J*W, Jtrans = J.transpose();
+		//lambda = (JW * Jtrans).ldlt().solve(-Jdot*qdot - JW * Q - feedBack);
+		Qhat = Jtrans * (JW * Jtrans).ldlt().solve(-Jdot*qdot - JW * Q - feedBack);			//constraint force applied
 	}//void calcConstraintForces();
 
 	void mySystem::buildCnstrntStructJumper() {
@@ -652,8 +685,7 @@ namespace particleSystem{
 		q.setZero(numParts);
 		qdot.setZero(numParts);
 		Q.setZero(numParts);
-		CVal.setZero(numCnstrnts);
-		CDotVal.setZero(numCnstrnts);
+		feedBack.setZero(numCnstrnts);
 
 		Eigen::Vector3d
 			tmpVec4, tmpVec5,
@@ -703,21 +735,23 @@ namespace particleSystem{
 					}
 				}
 				else if ((p[idx]->ID != c[cIdx]->p2ID) && (p[idx]->ID == c[cIdx]->p1ID)) {		//if particle is p1 in constraint cnstr and not a path constraint
-																								//cout<<"\np2 calc:"<<endl;
-					tmpVec4 = c[cIdx]->calcPartialCP1(p[idx], p[c[cIdx]->p2Idx]);
-					tmpVec5 = c[cIdx]->calcPartialCdotP1(p[idx], p[c[cIdx]->p2Idx]);
+					//tmpVec4 = c[cIdx]->calcPartialCP1(p[idx], p[c[cIdx]->p2Idx]);
+					//tmpVec5 = c[cIdx]->calcPartialCdotP1(p[idx], p[c[cIdx]->p2Idx]);
+					tmpVec4 = c[cIdx]->calcPartialCP1();
+					tmpVec5 = c[cIdx]->calcPartialCdotP1();
 				}
 				else if ((p[idx]->ID != c[cIdx]->p1ID) && (p[idx]->ID == c[cIdx]->p2ID)) {		//if particle is p2 in constraint cnstr and not a path constraint
-																								//cout<<"\np2 calc:"<<endl;
-					tmpVec4 = c[cIdx]->calcPartialCP2(p[c[cIdx]->p1Idx], p[idx]);
-					tmpVec5 = c[cIdx]->calcPartialCdotP2(p[c[cIdx]->p1Idx], p[idx]);
+					//tmpVec4 = c[cIdx]->calcPartialCP2(p[c[cIdx]->p1Idx], p[idx]);
+					//tmpVec5 = c[cIdx]->calcPartialCdotP2(p[c[cIdx]->p1Idx], p[idx]);
+					tmpVec4 = c[cIdx]->calcPartialCP2();
+					tmpVec5 = c[cIdx]->calcPartialCdotP2();
 				}
 				else {
 					//cout<<"\nno calc"<<endl;
 					tmpVec4.setZero();
 					tmpVec5.setZero();
 				}
-				calcFeedbackTerm(cIdx);
+				feedBack(cIdx) = c[cIdx]->ks * c[cIdx]->calcCVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]) + c[cIdx]->kd * c[cIdx]->calcCDotVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
 
 				J.row(cIdx).segment<3>(nIdx) = tmpVec4;
 				Jdot.row(cIdx).segment<3>(nIdx) = tmpVec5;
@@ -738,10 +772,7 @@ namespace particleSystem{
 		q.setZero(numParts);
 		qdot.setZero(numParts);
 		Q.setZero(numParts);
-		CVal.setZero(numCnstrnts);
-		CDotVal.setZero(numCnstrnts);
-
-		Eigen::Vector3d	tmpVec4, tmpVec5, tmpVec42, tmpVec52;
+		feedBack.setZero(numCnstrnts);
 
 		int nIdx = 0;							//index into part-related vals is nIdx, constraint-related vals is mIdx
 		//first set up q, qdot, qdotdot vectors
@@ -758,7 +789,7 @@ namespace particleSystem{
 			p1nIDX = 3 * c[cIdx]->p1Idx;
 			p2nIDX = 3 * c[cIdx]->p2Idx;
 
-			calcFeedbackTerm(cIdx);
+			feedBack(cIdx) = c[cIdx]->ks * c[cIdx]->calcCVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]) + c[cIdx]->kd * c[cIdx]->calcCDotVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
 			//col for each particle is 3*constraint's pidx, row for each particle is constraint idx 
 			J.row(cIdx).segment<3>(p1nIDX) = c[cIdx]->calcPartialCP1(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
 			Jdot.row(cIdx).segment<3>(p1nIDX) = c[cIdx]->calcPartialCdotP1(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);

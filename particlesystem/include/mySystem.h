@@ -7,6 +7,7 @@
 
 #include "myParticle.h"
 #include "mySolver.h"
+#include "myInvPend.h"
 #include "myForce.h"
 #include "myConstraint.h"
 #include "myCollider.h"
@@ -20,8 +21,8 @@ namespace particleSystem{
 	class mySystem {
 	public:
 		mySystem(string _name, double _delT, int numP, int numF, int numC) :
-			ID(++ID_gen), name(_name), deltaT(_delT), solver(nullptr), fluidBox(nullptr), p(numP), f(numF), c(numC), colliders(),
-			J(), Jdot(), W(), M(), q(), qdot(), Q(), CVal(), CDotVal(), Qhat(), lambda(), 
+			ID(++ID_gen), name(_name), deltaT(_delT), solver(nullptr), fluidBox(nullptr), p(numP), f(numF), c(numC), colliders(), invPend(),
+			J(), Jdot(), W(), M(), q(), qdot(), Q(), feedBack(), Qhat(),//, lambda(), 
 			kpAra(numP), shakeVal(0, 0, 0), partCOM(0, 0, 0), flags(numFlags, false) 
 		{ 
 			initFlagsAndSys(); 
@@ -108,19 +109,25 @@ namespace particleSystem{
 		void _buildBaseDefForces(double dCoeff);
 		void buildCnstrntStructJumper();
 
-		inline void calcFeedbackTerm(unsigned int cIdx) {
-			CVal(cIdx) = c[cIdx]->ks * c[cIdx]->calcCVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
-			CDotVal(cIdx) = c[cIdx]->kd * c[cIdx]->calcCDotVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
-			//SPD IMPLEMENTATION TODO
-			//CVal[cIdx] = c[cIdx].ks * c[cIdx].calcCValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);		//.8 = ks
-			//CDotVal[cIdx] = c[cIdx].kd * c[cIdx].calcCDotValSPD(p[c[cIdx].p1Idx],p[c[cIdx].p2Idx], deltaT);//.8 = kd
+		//inline void calcFeedbackTerm(unsigned int cIdx) {
+		//	feedBack(cIdx) = c[cIdx]->ks * c[cIdx]->calcCVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]) + c[cIdx]->kd * c[cIdx]->calcCDotVal(p[c[cIdx]->p1Idx], p[c[cIdx]->p2Idx]);
+
+		//}
+		inline void calcFBTermSPD() {
+			//Eigen::MatrixXd  invM = (mSkel->getMassMatrix() + mKd * mTimestep).inverse();
+			//Eigen::VectorXd p = -mKp * (_dof + _dofVel * mTimestep - mDesiredDofs);                    //mDesiredDofs is where we want to end up
+			//Eigen::VectorXd d = -mKd * _dofVel;
+			//Eigen::VectorXd qddot = invM * (-mSkel->getCombinedVector() + p + d + mConstrForces);
+			//mTorques = p + d - mKd * qddot * mTimestep;
+
+
 		}
 
 	public :
 
 		void buildCnstrntStruct(bool multiCnstrnt);
 
-		void buildInvPend(Eigen::Vector3d& sLoc);
+		void buildInvPendChain(Eigen::Vector3d& sLoc, int numParts);
 		void buildRollerCoasterConstraints(int id, double rad);
 		void buildAndSetCnstrnts(int part1IDX, int part2IDX, double rad, Eigen::Vector3d& center);
 
@@ -137,7 +144,7 @@ namespace particleSystem{
 		Eigen::Vector3d calcDragForce(Eigen::Vector3d& sValP);
 
 		void calcAnkleForce();
-		double calcAndApplyAnkleForce(int idx);                //calculate and apply appropriate ankle forces to counteract forces on constrained particle, return kp (with kd = 1/5 * deltat * kp)
+		double calcAndApplyAnkleForce(int cidx);                //calculate and apply appropriate ankle forces to counteract forces on constrained particle, return kp (with kd = 1/5 * deltat * kp)
 		void calcFluidForceForAllParticles();
 		void dispCenterPart(Eigen::Vector3d& dir);
 
@@ -229,17 +236,17 @@ namespace particleSystem{
 					addForcesToTinkerToys(fmult, msDragged, msDiff);
 				}
 			}
-			 
-			buildCnstrntStruct(jumpCnstrnt);									//handle constraints here - rebuild constraint structure			
-			calcConstraintForces();												//handle constraints here - calculate constraint forces and matrices		
-			applyConstraintForcesToSystem();									//handle collisions from contraint enforcement
-
 			calcAnkleForce();													//calc ankle forces based on derived forces
 
-			buildCnstrntStruct(jumpCnstrnt);									//handle constraints here - rebuild constraint structure			
-			calcConstraintForces();												//handle constraints here - calculate constraint forces and matrices		
-			applyConstraintForcesToSystem();									//handle collisions from contraint enforcement
-			if (calcCOM) { partCOM = calcAndSetCOM(0, p.size()); }				//derive COM val if only 1 inv pend			 TODO find this for all inv pend in seaweed
+			//TODO make all ankle forces and constraint structures calculated per seaweed strand (make a class)
+			for (unsigned int i = 0; i < invPend.size(); ++i) {
+				invPend[i]->calcAndApplyCnstrntFrc(calcCOM);
+			}
+
+			//buildCnstrntStruct(jumpCnstrnt);									//handle constraints here - rebuild constraint structure			
+			//calcConstraintForces();												//handle constraints here - calculate constraint forces and matrices		
+			//applyConstraintForcesToSystem();									//handle collisions from contraint enforcement
+			//if (calcCOM) { partCOM = calcAndSetCOM(0, p.size()); }				//derive COM val if only 1 inv pend			 TODO find this for all inv pend in seaweed
 			invokeSolverDerivEval();											//invoke derivative handler
 
 			return res;
@@ -317,6 +324,7 @@ namespace particleSystem{
 		vector<std::shared_ptr<myForce>> f;						//array holding all active forces in system
 		vector<std::shared_ptr<myConstraint>> c;				//array holding all active constraints on system
 		vector<std::shared_ptr<myCollider>> colliders;			//array holding the collision types the system will support
+		vector<std::shared_ptr<myInvPend>> invPend;				//inverted pendulum ara/seaaweed ara
 		vector<std::shared_ptr<mySpring>> spr;
 
 		//constrained bead on wire matrices and vectors	n = # parts, m = num constraints
@@ -327,10 +335,9 @@ namespace particleSystem{
 		Eigen::VectorXd q,										//q vector is position of all particles
 			qdot,									//velocity of all particles
 			Q,										//Q is vector of forces on each particle, from force acc
-			CVal,									//value of each constraint C
-			CDotVal,								//value of each derivative of constraint Cdot
-			Qhat,									//Qhat vector is constrain forces to apply to each particle - this is what is -applied- (result of constraint calculations) to force acc
-			lambda;								//lambda is c.size() # of lagrangian multipliers, 1 per constraint
+			feedBack,								//feedback term - pd control/spd control
+			Qhat;// ,									//Qhat vector is constrain forces to apply to each particle - this is what is -applied- (result of constraint calculations) to force acc
+		//	lambda;								//lambda is c.size() # of lagrangian multipliers, 1 per constraint
 
 		std::shared_ptr<myFluidBox> fluidBox;								//fluid box to simulate snowglobe accelerations
 

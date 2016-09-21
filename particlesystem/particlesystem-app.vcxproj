@@ -108,6 +108,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\ControlPanel.cpp" />
+    <ClCompile Include="src\myInvPend.cpp" />
     <ClCompile Include="src\MyParticleWorld.cpp" />
     <ClCompile Include="src\glFuncs.cpp" />
     <ClCompile Include="src\Main.cpp" />
@@ -126,6 +127,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\ControlPanel.h" />
+    <ClInclude Include="include\myInvPend.h" />
     <ClInclude Include="include\MyParticleWorld.h" />
     <ClInclude Include="include\glFuncs.h" />
     <ClInclude Include="include\myCollider.h" />

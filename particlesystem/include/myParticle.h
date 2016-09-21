@@ -19,7 +19,6 @@ namespace particleSystem {
 		myParticle(double _mass, const Eigen::Ref<const Eigen::Vector3d>&  _pos, const Eigen::Ref<const Eigen::Vector3d>&  _velocity, const Eigen::Ref<const Eigen::Vector3d>&  _forceAcc, SolverType _solv) :
 			ID(ID_gen++), inContact(false), mass(_mass), origMass(_mass), solveType(_solv),solver(make_shared<mySolver>(_solv)), 
 			color((rand() / (1.0*RAND_MAX)), (rand() / (1.0*RAND_MAX)), (rand() / (1.0*RAND_MAX))), origColor(0,0,0),initPos(_pos), initVel(_velocity)
-//			,position(2,_pos), velocity(2,_velocity), forceAcc(2,_forceAcc)
 			,q(2, Eigen::VectorXd(6)),qdot(2, Eigen::VectorXd(6))
 		{
 			//set up deques to have 2 spots
