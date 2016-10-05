@@ -31,7 +31,7 @@ using namespace std;
 using namespace particleSystem;
 
 void onTimer(void *){
-	double howFast = globDeltaT;
+	double howFast = .001;
 	if (!MyParticleWorld::systems[gCurrentScene]->flags[mySystem::pauseSim]) {
 		if( mUI->mControl->isPlaying()){//playback frames
             recordFrames();
@@ -60,7 +60,7 @@ int main(int argc, char ** argv){
 	mUI = new ParticleSystemUI;
 	// ---------------------------------------------
 	for (int i = 0; i < numCurrSystems; ++i) {
-		MyParticleWorld::initScene(i, globDeltaT, RK4_G, 0, 0, 0);			//start on mass spring motion scene
+		MyParticleWorld::initScene(i, globDeltaT, RK4_G, 0, 0, 0);			
 	}
 	gCurrentScene = MSPR_MTN_PROJ;		//start with 30 sided die
 

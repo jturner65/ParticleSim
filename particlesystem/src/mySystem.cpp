@@ -4,8 +4,22 @@
 
 namespace particleSystem{
 	unsigned int mySystem::ID_gen = 0;
-	//constraint spring constant
-	double mySystem::globKp = 1000;
+	mySystem::mySystem(string _name, double _delT, int numP, int numF, int numC) :
+		ID(++ID_gen), name(_name), deltaT(_delT), solver(nullptr), fluidBox(nullptr), p(numP), f(numF), c(numC), colliders(), invPend(),
+		J(), Jdot(), W(), M(), q(), qdot(), Q(), feedBack(), Qhat(),//, lambda(), 
+		kpAra(numP), shakeVal(0, 0, 0), partCOM(0, 0, 0), flags(numFlags, false)
+	{
+		flags[showVel] = false;					//init to true, eventually control via UI
+		flags[mass2HasHitGrnd] = true;				//init to true, eventually control via UI
+		flags[mass2ChkHasHitGrnd] = true;				//init to true, eventually control via UI
+		flags[useMassMat] = true;
+		tsCntr = 0;
+		//stringstream ss;
+		//ss << name << "_solver";
+		solver = make_shared<mySolver>(particleSystem::SolverType(0));//just need a solver, type doesn't matter
+	}
+
+	mySystem::~mySystem() {}
 
     void mySystem::applyForceVecToAllPartsMsSpr(const Eigen::Ref<const Eigen::Vector3d>& frc){
         int numParts = p.size();
@@ -357,7 +371,7 @@ namespace particleSystem{
 		if (rad == -1) { rad = dist2Parts(part1IDX, part2IDX);	name = "CircleBarbellConstraint"; }			//part1IDX != part2IDX;
 		else {				name = "CircleConstraint";	}											//part1IDX == part2IDX;
 		myConstraint::ID_gen = c.size();
-		c.push_back(std::make_shared<myConstraint>(name, rad, mySystem::globKp, mySystem::globKp * 1.5 * deltaT, C_Circular, center));
+		c.push_back(std::make_shared<myConstraint>(name, rad, globCnstKp, globCnstKp * 1.5 * deltaT, C_Circular, center));
 		c.back()->setP1((p[part1IDX]), part1IDX);
 		c.back()->setP2((p[part2IDX]), part2IDX);
 		c.back()->useAnchor = part1IDX == part2IDX;
@@ -514,11 +528,6 @@ namespace particleSystem{
 
 	 //for inv pend calculate and apply appropriate "ankle" forces to counteract forces on constrained particle, return kp (with kd = 1/5 * deltat * kp)
 	double mySystem::calcAndApplyAnkleForce(int cIdx) {
-		//assume constraints length 1 _NO_ TODO fix this - need to measure constraint length
-		//inline Eigen::Vector3d getCurAnklePoint() { return ((p2ID != p1ID) ? p1->getPosition() : anchorPoint); }
-		//inline Eigen::Vector3d getInitAnklePoint() { return ((p2ID != p1ID) ? p1->initPos : anchorPoint); }
-
-
 		double kp = 0, cLen = c[cIdx]->c_Dist;
 		//apply correcting force to particle 2 idx - applied at particle 1 (treating like "ankle" joint)
 		int pIdx = c[cIdx]->p2Idx;
@@ -559,9 +568,13 @@ namespace particleSystem{
 		unsigned int numParts = p.size();
 		//int solverTypeToUse = (usePartSolver ? p[idx]->solveType : solveType);
 		for (unsigned int idx = 0; idx < numParts; ++idx) {
-			state.segment<12>(0) << p[idx]->getState(), p[idx]->getState(1);
+			//state.segment<12>(0) << p[idx]->getState(), p[idx]->getState(1);
+			//stateDot.segment<12>(0) << p[idx]->getStateDot(), p[idx]->getStateDot(1);
+			state << p[idx]->getState(), p[idx]->getState(1);
 
-			stateDot.segment<12>(0) << p[idx]->getStateDot(), p[idx]->getStateDot(1);
+
+
+			stateDot<< p[idx]->getStateDot(), p[idx]->getStateDot(1);
 
 			stateDot.segment<3>(3) /= p[idx]->mass;
 			stateDot.segment<3>(9) /= p[idx]->mass;

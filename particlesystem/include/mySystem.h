@@ -20,26 +20,9 @@ namespace particleSystem{
 	//should include structure to hold particles, forces, time
 	class mySystem {
 	public:
-		mySystem(string _name, double _delT, int numP, int numF, int numC) :
-			ID(++ID_gen), name(_name), deltaT(_delT), solver(nullptr), fluidBox(nullptr), p(numP), f(numF), c(numC), colliders(), invPend(),
-			J(), Jdot(), W(), M(), q(), qdot(), Q(), feedBack(), Qhat(),//, lambda(), 
-			kpAra(numP), shakeVal(0, 0, 0), partCOM(0, 0, 0), flags(numFlags, false) 
-		{ 
-			initFlagsAndSys(); 
-		}
 
-		~mySystem() {}
-
-		inline void initFlagsAndSys() {
-			flags[showVel] = false;					//init to true, eventually control via UI
-			flags[mass2HasHitGrnd] = true;				//init to true, eventually control via UI
-			flags[mass2ChkHasHitGrnd] = true;				//init to true, eventually control via UI
-			flags[useMassMat] = true;
-			tsCntr = 0;
-			//stringstream ss;
-			//ss << name << "_solver";
-			solver = make_shared<mySolver>(particleSystem::SolverType(0));//just need a solver, type doesn't matter
-		}
+		mySystem(string _name, double _delT, int numP, int numF, int numC);
+		~mySystem();
 
 		inline void buildFluidBox(int numCellX, int numCellY, int numCellZ, double _diffusion, double _viscosity, const Eigen::Ref<const Eigen::Vector3d>& _ctrLoc, const Eigen::Ref<const Eigen::Vector3d>& cellSize) {
 			fluidBox = make_shared<myFluidBox>(numCellX, numCellY, numCellZ, _diffusion, _viscosity, deltaT, cellSize);
@@ -120,7 +103,15 @@ namespace particleSystem{
 			//Eigen::VectorXd qddot = invM * (-mSkel->getCombinedVector() + p + d + mConstrForces);
 			//mTorques = p + d - mKd * qddot * mTimestep;
 
+			//Eigen::VectorXd q = mBiped->getPositions();
+			//Eigen::VectorXd dq = mBiped->getVelocities();
 
+			//Eigen::MatrixXd invM = (mBiped->getMassMatrix() + mKd * mBiped->getTimeStep()).inverse();
+			//Eigen::VectorXd p = -mKp * (q + dq * mBiped->getTimeStep() - mTargetPositions);
+			//Eigen::VectorXd d = -mKd * dq;
+			//Eigen::VectorXd qddot = invM * (-mBiped->getCoriolisAndGravityForces() + p + d + mBiped->getConstraintForces());
+
+			//feedBack = p + d - mKd * qddot * mBiped->getTimeStep();
 		}
 
 	public :
@@ -236,17 +227,19 @@ namespace particleSystem{
 					addForcesToTinkerToys(fmult, msDragged, msDiff);
 				}
 			}
-			calcAnkleForce();													//calc ankle forces based on derived forces
+			//calcAnkleForce();													//calc ankle forces based on derived forces
 
 			//TODO make all ankle forces and constraint structures calculated per seaweed strand (make a class)
 			for (unsigned int i = 0; i < invPend.size(); ++i) {
-				invPend[i]->calcAndApplyCnstrntFrc(calcCOM);
+				invPend[i]->calcCnstrntFrc();
+				invPend[i]->applyConstraintForcesToSystem();
+			}
+			if (calcCOM) {
+				for (unsigned int i = 0; i < invPend.size(); ++i) {
+					invPend[i]->calcAndSetCOM();
+				}
 			}
 
-			//buildCnstrntStruct(jumpCnstrnt);									//handle constraints here - rebuild constraint structure			
-			//calcConstraintForces();												//handle constraints here - calculate constraint forces and matrices		
-			//applyConstraintForcesToSystem();									//handle collisions from contraint enforcement
-			//if (calcCOM) { partCOM = calcAndSetCOM(0, p.size()); }				//derive COM val if only 1 inv pend			 TODO find this for all inv pend in seaweed
 			invokeSolverDerivEval();											//invoke derivative handler
 
 			return res;
@@ -294,7 +287,6 @@ namespace particleSystem{
 
 	public:
 		static unsigned int ID_gen;
-		static double globKp;           //global spring constant for constraints
 
 		int ID;
 		string name;
@@ -331,6 +323,7 @@ namespace particleSystem{
 		Eigen::MatrixXd J,								//1 col per particle's x,y,z (3n) , 1 row per contraint(m)
 			Jdot,							//1 col per particle's x,y,z (3n) , 1 row per contraint(m)
 			W,								//diagonal inverse mass matrix, 1 3x3 diag entry per particle, rest 0 - only stores non-zero values in rows of sparse vectors (3n x 3n)
+		//	spdInvM,						//inverse of mass matrix + kd*delT
 			M;								//diagonal mass matrix, 1 3x3 diag entry per particle, rest 0 - only stores non-zero values in rows of sparse vectors (3n x 3n)
 		Eigen::VectorXd q,										//q vector is position of all particles
 			qdot,									//velocity of all particles

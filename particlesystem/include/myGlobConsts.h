@@ -24,8 +24,9 @@ namespace particleSystem{
 	static const double dragMSFrcCoef = -.3;			//general damping for mass spring
 	static const double dragFluidFrcCoef = -.15;		//general damping for fluids
 
-	static const double PI = atan(1.0) * 4;
+	static const double globCnstKp = 1000;				//constraint kp
 
+	static const double PI = atan(1.0) * 4;
 	static const double twoPI = 2 * PI;
 	static const double PI_2 = PI * .5;
 	static const double VERLET1mDAMP = .99999;          //1 minus some tiny damping term for verlet stability

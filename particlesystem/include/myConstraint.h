@@ -22,13 +22,12 @@ namespace particleSystem{
 		inline double calcCVal(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) {
 			Eigen::Vector3d p2Pos(((p2ID != p1ID) ? p2->getPosition() : anchorPoint));			//dummy particle for anchor point	
 			Eigen::Vector3d p1PosRel(p1->getPosition() - p2Pos);
-			return .5 * (p1PosRel.dot(p1PosRel)) - .5 * c_DistSq;
+			return (p1PosRel.dot(p1PosRel)) - c_DistSq; //.5 * (p1PosRel.dot(p1PosRel)) - .5 * c_DistSq;
 		}
 		//return cdot value evaluated for the 2 positions of this constraint
 		inline double calcCDotVal(std::shared_ptr<myParticle> p1, std::shared_ptr<myParticle> p2) {
 			Eigen::Vector3d p2Pos(((p2ID != p1ID) ? p2->getPosition() : anchorPoint));			//dummy particle for anchor point				
 			Eigen::Vector3d p2Vel(((p2ID != p1ID) ? p2->getVelocity() : Eigen::Vector3d(0, 0, 0)));
-
 			return (p1->getPosition() - p2Pos).dot(p1->getVelocity()  - p2Vel);									//cdot = part.pos dot part.vel
 		}
 

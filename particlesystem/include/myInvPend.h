@@ -23,7 +23,7 @@ namespace particleSystem {
 			ID(ID_gen++), p(_p),  c(_c), p_stIdx(_pStIdx), p_endIdx(_pEndIdx), partCOM(0,0,0),
 			J(), Jdot(), W(), M(), q(), qdot(), Q(), feedBack(), Qhat()//, lambda()
 		{
-			partCOM = calcAndSetCOM();
+			calcAndSetCOM();
 			calcMassAndWMat();
 		}
 
@@ -34,12 +34,9 @@ namespace particleSystem {
 		void calcAnkleForce();
 		//inline double calcAndApplyAnkleForce(int idx);                //calculate and apply appropriate ankle forces to counteract forces on constrained particle, return kp (with kd = 1/5 * deltat * kp)
 
-		inline void calcAndApplyCnstrntFrc(bool calcCOM) {
-			//calcAnkleForce();													//calc ankle forces based on derived forces
-
-			buildCnstrntStruct();									//handle constraints here - rebuild constraint structure			
-			applyConstraintForcesToSystem();									//handle collisions from contraint enforcement
-			if (calcCOM) { partCOM = calcAndSetCOM(); }				//derive COM val if only 1 inv pend			 TODO find this for all inv pend in seaweed
+		inline void calcCnstrntFrc() {
+			calcAnkleForce();										//calc ankle forces based on derived forces
+			buildCnstrntStruct();									//handle constraints here - rebuild constraint structure and derive q		
 		}
 
 		//apply all resultant constraint forces to system (qhat)
@@ -51,7 +48,29 @@ namespace particleSystem {
 			}
 		}//applyConstraintForcesToSystem
 
-		Eigen::Vector3d calcAndSetCOM();
+		void calcAndSetCOM();
+
+		inline void calcFBTermSPD(const Eigen::Ref<const Eigen::MatrixXd>& q, const Eigen::Ref<const Eigen::MatrixXd>& dq) {
+			//Eigen::MatrixXd  invM = (mSkel->getMassMatrix() + mKd * mTimestep).inverse();
+			//Eigen::VectorXd p = -mKp * (_dof + _dofVel * mTimestep - mDesiredDofs);                    //mDesiredDofs is where we want to end up
+			//Eigen::VectorXd d = -mKd * _dofVel;
+			//Eigen::VectorXd qddot = invM * (-mSkel->getCombinedVector() + p + d + mConstrForces);
+			//mTorques = p + d - mKd * qddot * mTimestep;
+			///--------
+			//Eigen::VectorXd qdist = all constraint C eqs
+			//Eigen::VectorXd dq = all constraint Cdot eqs
+
+			//Eigen::MatrixXd invM = inv mass matrx * kd 
+			//Eigen::VectorXd p = -mKp * (qdist + dq * mBiped->getTimeStep() );
+			//Eigen::VectorXd d = -mKd * dq;
+
+			//Eigen::VectorXd qddot = invM * (-mBiped->getCoriolisAndGravityForces() + p + d + mBiped->getConstraintForces());
+
+			//feedBack = p + d - mKd * qddot * mBiped->getTimeStep();
+		}
+
+
+
 
 		friend ostream& operator<<(ostream& out, const myInvPend& p) {
 			out << "Particle ID : " << p.ID;

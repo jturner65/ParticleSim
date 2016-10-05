@@ -4,6 +4,9 @@
 namespace particleSystem{
 	unsigned int mySolver::ID_gen = 0;
 
+	mySolver::mySolver(SolverType _t) :ID(++ID_gen), type(_t), lambda(2), invLam(0), lamHalf(0), hafMInvLam(0), oneMlamHalf(0) { setLambda(lambda); setIntegratorType(_t); }
+	mySolver::~mySolver() {}
+
 	//USING single state and single statedot vectors
 	//set function pointer based on passed type of solver
 	void mySolver::setIntegratorType(SolverType type) {
@@ -25,7 +28,7 @@ namespace particleSystem{
 	Eigen::VectorXd mySolver::IntegrateGroundPerPart(double deltaT, const Eigen::Ref<const Eigen::VectorXd>& _state, const Eigen::Ref<const Eigen::VectorXd>& _stateDot) {
 		Eigen::VectorXd res(6), sDotDot(6); 
 		sDotDot << _stateDot.segment<3>(3), 0, 0, 0;
-		res = _state + (deltaT *_stateDot) + (.5 * deltaT * deltaT) * sDotDot;
+		res = _state.segment<6>(0) + (deltaT *_stateDot.segment<6>(0)) + (.5 * deltaT * deltaT) * sDotDot;
 	//	res.segment<3>(0) += (_stateDot.segment<3>(3) * (.5 * deltaT * deltaT));			//add acceleration   to position calc
 		return res;
 	}
@@ -34,16 +37,27 @@ namespace particleSystem{
 	Eigen::VectorXd mySolver::IntegrateExp_EPerPart(double deltaT, const Eigen::Ref<const Eigen::VectorXd>& _state, const Eigen::Ref<const Eigen::VectorXd>& _stateDot) {
 		Eigen::VectorXd res(6);
 		res.setZero();
-		res = _state + (deltaT *_stateDot);
+		res = _state.segment<6>(0) + (deltaT *_stateDot.segment<6>(0));
+		return res;
+	}
+
+	//explicit euler single time step evaluation with force update - only called internally
+	Eigen::VectorXd mySolver::IntegrateExp_EFrcUpd(double deltaT, const Eigen::Ref<const Eigen::VectorXd>& _state, const Eigen::Ref<const Eigen::VectorXd>& _stateDot) {
+		Eigen::VectorXd res(9);
+		res.setZero();
+		res.segment<6>(0) = _state.segment<6>(0) + (deltaT *_stateDot.segment<6>(0));
+		//add updated force here - recalc constraint frces
+		res.segment<3>(6) = _stateDot.segment<3>(3);
 		return res;
 	}
 
 	//midpoint method single time step evaulation - evaluate at deltaT/2, take the values found and use to re-evaluate
 	Eigen::VectorXd mySolver::IntegrateMidpointPerPart(double deltaT, const Eigen::Ref<const Eigen::VectorXd>& _state, const Eigen::Ref<const Eigen::VectorXd>& _stateDot) {
 		Eigen::VectorXd tmpStateDot(6), res(6);
-		Eigen::VectorXd deltaXhalf = IntegrateExp_EPerPart((deltaT *.5), _state, _stateDot);		//find new state at half-time
-		tmpStateDot = _stateDot;
-		tmpStateDot.segment<3>(0) = deltaXhalf.segment<3>(3);				//copy over half-time vel
+		Eigen::VectorXd deltaXhalf = IntegrateExp_EFrcUpd((deltaT *.5), _state, _stateDot);		//find new state at half-time
+		
+		//tmpStateDot = _stateDot;
+		tmpStateDot.segment<6>(0) = deltaXhalf.segment<6>(3);				//copy over half-time vel
 		res = IntegrateExp_EPerPart(deltaT, _state, tmpStateDot);	//x0 + h xdot1/2
 		return res;
 	}
@@ -65,81 +79,80 @@ namespace particleSystem{
 	}
 
 	Eigen::VectorXd mySolver::IntegrateRK3PerPart(double deltaT, const Eigen::Ref<const Eigen::VectorXd>& _state, const Eigen::Ref<const Eigen::VectorXd>& _stateDot) {
-		Eigen::VectorXd res(6);
+		Eigen::VectorXd res(6); res.setZero();
 
-		Eigen::VectorXd tmpVecK1(6), tmpVecK2(6), tmpVecK3(6);
+		Eigen::VectorXd tmpVecK1(6), tmpVecK2(6), tmpVecK3(6); tmpVecK1.setZero(); tmpVecK2.setZero(); tmpVecK3.setZero();
 
-		Eigen::VectorXd tmpVecState1 = IntegrateExp_EPerPart(deltaT, _state, _stateDot);
-		tmpVecK1.segment<3>(0) << tmpVecState1.segment<3>(3);		//move resultant velocity into xdot position
-		tmpVecK1.segment<3>(3) << _stateDot.segment<3>(3);			//move acceleration into vdot position
+		Eigen::VectorXd tmpVecState1 = IntegrateExp_EFrcUpd(deltaT, _state, _stateDot);
+		tmpVecK1 << tmpVecState1.segment<6>(3);		//move resultant velocity and accel into xdot position
+		
+		//tmpVecK1.segment<3>(3) << _stateDot.segment<3>(3);			//move acceleration into vdot position
 
-		Eigen::VectorXd tmpVecState2 = IntegrateExp_EPerPart((deltaT *.5), _state, tmpVecK1);
-		tmpVecK2.segment<3>(0) << tmpVecState2.segment<3>(3);		//move resultant velocity into xdot position
-		tmpVecK2.segment<3>(3) << tmpVecK1.segment<3>(3);			//move acceleration into vdot position
+		Eigen::VectorXd tmpVecState2 = IntegrateExp_EFrcUpd((deltaT *.5), _state, tmpVecK1);
+		tmpVecK2 << tmpVecState2.segment<6>(3);		//move resultant velocity into xdot position
+		
+		//tmpVecK2.segment<3>(3) << tmpVecK1.segment<3>(3);			//move acceleration into vdot position
 
-		Eigen::VectorXd tmpVecState3 = IntegrateExp_EPerPart(deltaT, _state, tmpVecK2);
-		tmpVecK3.segment<3>(0) << tmpVecState3.segment<3>(3);		//move resultant velocity into xdot position
-		tmpVecK3.segment<3>(3) << tmpVecK2.segment<3>(3);			//move acceleration into vdot position
+		Eigen::VectorXd tmpVecState3 = IntegrateExp_EFrcUpd(deltaT, _state, tmpVecK2);
+		tmpVecK3 << tmpVecState3.segment<6>(3);		//move resultant velocity into xdot position
+		
+		//tmpVecK3.segment<3>(3) << tmpVecK2.segment<3>(3);			//move acceleration into vdot position
 
-		res = _state + deltaT * ((tmpVecK1 + 4 * tmpVecK2 + tmpVecK3)/6.0);
+		res = _state.segment<6>(0) + deltaT * ((tmpVecK1 + 4 * tmpVecK2 + tmpVecK3)/6.0);
 		return res;
 	}
 	//RK4-solver
 	Eigen::VectorXd mySolver::IntegrateRK4PerPart(double deltaT, const Eigen::Ref<const Eigen::VectorXd>& _state, const Eigen::Ref<const Eigen::VectorXd>& _stateDot) {
-		Eigen::VectorXd res(6);
+		Eigen::VectorXd res(6); res.setZero();
 
 		Eigen::VectorXd tmpVecK1(6), tmpVecK2(6), tmpVecK3(6), tmpVecK4(6);
+		tmpVecK1.setZero(); tmpVecK2.setZero(); tmpVecK3.setZero();  tmpVecK4.setZero();
 
-		Eigen::VectorXd tmpVecState1 = IntegrateExp_EPerPart(deltaT, _state, _stateDot);
-		tmpVecK1.segment<3>(0) << tmpVecState1.segment<3>(3);		//move resultant velocity into xdot position
-		tmpVecK1.segment<3>(3) << _stateDot.segment<3>(3);			//move acceleration into vdot position
+		Eigen::VectorXd tmpVecState1 = IntegrateExp_EFrcUpd(deltaT, _state, _stateDot);
+		tmpVecK1 << tmpVecState1.segment<6>(3);		//move resultant velocity into xdot position
 
-		Eigen::VectorXd tmpVecState2 = IntegrateExp_EPerPart((deltaT *.5), _state, tmpVecK1);
-		tmpVecK2.segment<3>(0) << tmpVecState2.segment<3>(3);		//move resultant velocity into xdot position
-		tmpVecK2.segment<3>(3) << tmpVecK1.segment<3>(3);			//move acceleration into vdot position
+		Eigen::VectorXd tmpVecState2 = IntegrateExp_EFrcUpd((deltaT *.5), _state, tmpVecK1);
+		tmpVecK2 << tmpVecState2.segment<6>(3);		//move resultant velocity into xdot position
 
-		Eigen::VectorXd tmpVecState3 = IntegrateExp_EPerPart((deltaT *.5), _state, tmpVecK2);
-		tmpVecK3.segment<3>(0) << tmpVecState3.segment<3>(3);		//move resultant velocity into xdot position
-		tmpVecK3.segment<3>(3) << tmpVecK2.segment<3>(3);			//move acceleration into vdot position
+		Eigen::VectorXd tmpVecState3 = IntegrateExp_EFrcUpd((deltaT *.5), _state, tmpVecK2);
+		tmpVecK3 << tmpVecState3.segment<6>(3);		//move resultant velocity into xdot position
 
-		Eigen::VectorXd tmpVecState4 = IntegrateExp_EPerPart(deltaT, _state, tmpVecK3);
-		tmpVecK4.segment<3>(0) << tmpVecState4.segment<3>(3);		//move resultant velocity into xdot position
-		tmpVecK4.segment<3>(3) << tmpVecK3.segment<3>(3);			//move acceleration into vdot position
+		Eigen::VectorXd tmpVecState4 = IntegrateExp_EFrcUpd(deltaT, _state, tmpVecK3);
+		tmpVecK4 << tmpVecState4.segment<6>(3);		//move resultant velocity into xdot position
+		
+		//tmpVecK4.segment<3>(3) << tmpVecK3.segment<3>(3);			//move acceleration into vdot position
 
-		res = _state + deltaT * ((tmpVecK1 + 2 * (tmpVecK2 + tmpVecK3) + tmpVecK4) / 6.0);
+		res = _state.segment<6>(0) + deltaT * ((tmpVecK1 + 2 * (tmpVecK2 + tmpVecK3) + tmpVecK4) / 6.0);
 
 		return res;
 	}
 	//general form as per Delin and Zhang
 	Eigen::VectorXd mySolver::IntegrateRK4PerPartLambda(double deltaT, const Eigen::Ref<const Eigen::VectorXd>& _state, const Eigen::Ref<const Eigen::VectorXd>& _stateDot) {
+
 		Eigen::VectorXd res(6);
 		Eigen::VectorXd tmpVecK1(6), tmpVecK2(6), tmpVecK3(6), tmpVecK4(6), tmpVecK2a(6), tmpVecK3a(6);
+		tmpVecK1.setZero(); tmpVecK2.setZero(); tmpVecK3.setZero(); tmpVecK4.setZero(); tmpVecK2a.setZero(); tmpVecK3a.setZero();
 
-		Eigen::VectorXd tmpVecState1 = IntegrateExp_EPerPart(deltaT, _state, _stateDot);
-		tmpVecK1.segment<3>(0) << tmpVecState1.segment<3>(3);		//move resultant velocity into xdot position
-		tmpVecK1.segment<3>(3) << _stateDot.segment<3>(3);			//move acceleration into vdot position
+		Eigen::VectorXd tmpVecState1 = IntegrateExp_EFrcUpd(deltaT, _state, _stateDot);
+		tmpVecK1 << tmpVecState1.segment<6>(3);		//move resultant velocity into xdot position
 
-		Eigen::VectorXd tmpVecState2 = IntegrateExp_EPerPart((deltaT *.5), _state, tmpVecK1);
-		tmpVecK2.segment<3>(0) << tmpVecState2.segment<3>(3);		//move resultant velocity into xdot position
-		tmpVecK2.segment<3>(3) << tmpVecK1.segment<3>(3);			//move acceleration into vdot position
+		Eigen::VectorXd tmpVecState2 = IntegrateExp_EFrcUpd((deltaT *.5), _state, tmpVecK1);
+		tmpVecK2 << tmpVecState2.segment<6>(3);		//move resultant velocity into xdot position
+		//mult by 2 because using hard 1/2 mult of timestep
+		tmpVecK2a<< 2.0*((hafMInvLam * tmpVecK1) + (invLam * tmpVecK2));
 
-		tmpVecK2a.segment<3>(0) << (((.5 - (1.0 / lambda)) * tmpVecK1.segment<3>(0)) + ((1.0 / lambda) * tmpVecK2.segment<3>(0)));
-		tmpVecK2a.segment<3>(3) << tmpVecK1.segment<3>(3);			//move acceleration into vdot position
+		Eigen::VectorXd tmpVecState3 = IntegrateExp_EFrcUpd((deltaT *.5), _state, tmpVecK2a);
+		tmpVecK3 << tmpVecState3.segment<6>(3);		//move resultant velocity into xdot position
 
-		Eigen::VectorXd tmpVecState3 = IntegrateExp_EPerPart((deltaT *.5), _state, tmpVecK2a);
-		tmpVecK3.segment<3>(0) << tmpVecState3.segment<3>(3);		//move resultant velocity into xdot position
-		tmpVecK3.segment<3>(3) << tmpVecK2.segment<3>(3);			//move acceleration into vdot position
+		tmpVecK3a.segment<6>(0) << ((oneMlamHalf * tmpVecK2.segment<6>(0)) + (lamHalf * tmpVecK3.segment<6>(0)));
 
-		tmpVecK3a.segment<3>(0) << (((1 - (lambda / 2.0)) * tmpVecK2.segment<3>(0)) + ((lambda / 2.0) * tmpVecK3.segment<3>(0)));
-		tmpVecK3a.segment<3>(3) << tmpVecK2a.segment<3>(3);			//move acceleration into vdot position
+		Eigen::VectorXd tmpVecState4 = IntegrateExp_EFrcUpd(deltaT, _state, tmpVecK3a);
+		tmpVecK4 << tmpVecState4.segment<6>(3);		//move resultant velocity into xdot position
 
-		Eigen::VectorXd tmpVecState4 = IntegrateExp_EPerPart(deltaT, _state, tmpVecK3a);
-		tmpVecK4.segment<3>(0) << tmpVecState4.segment<3>(3);		//move resultant velocity into xdot position
-		//tmpVecK4.segment<3>(3) << tmpVecK3.segment<3>(3);			//move acceleration into vdot position
-
-		res = _state + deltaT * ((tmpVecK1 + ((4 - lambda) * tmpVecK2)  + (lambda * tmpVecK3) + tmpVecK4) / 6.0);
+		res = _state.segment<6>(0) + deltaT * ((tmpVecK1 + ((4 - lambda) * tmpVecK2) + (lambda * tmpVecK3) + tmpVecK4) / 6.0);
 
 		return res;
+
 
 	}
 	//NOT WORKING - using conj grad solver in mySystem for implicit, but this only handles springs
@@ -174,28 +187,16 @@ namespace particleSystem{
 	}
 
 	Eigen::VectorXd mySolver::IntegrateTrapPerPart(double deltaT, const Eigen::Ref<const Eigen::VectorXd>& _state, const Eigen::Ref<const Eigen::VectorXd>& _stateDot) {
-		Eigen::VectorXd res(6);
+		Eigen::VectorXd res(6), resDot(9);
 		res.setZero();
 		//if(_perPart){}//{	std::cout<<"IntegrateTrapPerPart called per part\n"<<std::endl;	}
 		//else	{		std::cout<<"IntegrateTrapPerPart called in loop\n"<<std::endl;	}
-		res = _state + (deltaT * _stateDot);
-		//trap - use 1/2 future and 1/2 past vel
-		res.segment<3>(0) = _state.segment<3>(0) + (deltaT * .5 * (res.segment<3>(3) + _state.segment<3>(3)));
+		resDot = IntegrateExp_EFrcUpd(deltaT, _state, _stateDot);//fwd euler w/frce upd
+		//update force as well
+		//trap - use 1/2 future and 1/2 past statedot
+		res = _state.segment<6>(0) + (deltaT * .5 * (resDot.segment<6>(3) + _stateDot.segment<6>(0)));
 		return res;
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 }//particleSystem namespace

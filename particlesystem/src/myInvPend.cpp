@@ -12,19 +12,6 @@ namespace particleSystem {
 		//lagrangian formulation
 		//p1 is base of constraint, p2 is particle to receive force 
 
-
-
-		//for (unsigned int pidx = p_stIdx; pidx < p_endIdx; ++pidx) {
-		//	//assume constraints length 1 _NO_ TODO fix this
-		//	double kp = 0;
-		//	Eigen::Vector3d tmpThet = (p[pidx]->initPos - p[pidx]->getPosition() + (.1 * p[pidx]->getVelocity())); //vector of positions and velocities
-		//	double lenFacc = p[pidx]->getForceAcc().norm(),
-		//		lenThet = tmpThet.norm();
-		//	kp = (0 == lenThet ? 0 : lenFacc * 1.1 / lenThet);
-		//	//kp *= 1;
-		//	Eigen::Vector3d newForce = (0 == kp ? Eigen::Vector3d(0, 0, 0) : -kp * lenThet * (p[pidx]->getForceAcc().normalized()));
-		//	p[pidx]->applyForce(newForce);
-		//}
 		for (unsigned int cIdx = 0; cIdx < c.size(); ++cIdx) {
 			double kp = 0, cLen = c[cIdx]->c_Dist;
 			//apply correcting force to particle 2 idx - applied at particle 1 (treating like "ankle" joint)
@@ -44,16 +31,15 @@ namespace particleSystem {
 		}
 	}//calcAndApplyAnkleForce
 	 //find COM of particle configuration
-	Eigen::Vector3d myInvPend::calcAndSetCOM() {
-		Eigen::Vector3d tmpCOM(0, 0, 0);
+	void myInvPend::calcAndSetCOM() {
+		partCOM.setZero();
 		//int numParts = p.size();
 		double totMass = 0;
 		for (unsigned int pidx = p_stIdx; pidx < p_endIdx; ++pidx) {
-			tmpCOM += p[pidx]->getPosition() * p[pidx]->mass;
+			partCOM += p[pidx]->getPosition() * p[pidx]->mass;
 			totMass += p[pidx]->mass;
 		}
-		tmpCOM = tmpCOM / totMass;
-		return tmpCOM;
+		partCOM = partCOM / totMass;
 	}//calcAndSetCOM
 
 	//precalculate M (mass) matrix and W matrix - only do when configuration changes
@@ -97,7 +83,7 @@ namespace particleSystem {
 			nIdx += 3;		//increment by 3 for each particle
 		}
 		int p1nIDX, p2nIDX;
-		//next build constraint values for each constraint
+		//next build constraint values for each constraint endpoint
 		for (unsigned int cIdx = 0; cIdx < numCnstrnts; ++cIdx) {
 			p1nIDX = 3 * (c[cIdx]->p1Idx - p_stIdx);
 			p2nIDX = 3 * (c[cIdx]->p2Idx - p_stIdx);
