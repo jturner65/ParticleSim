@@ -24,8 +24,8 @@ namespace particleSystem{
 		mySystem(string _name, double _delT, int numP, int numF, int numC);
 		~mySystem();
 
-		inline void buildFluidBox(int numCellX, int numCellY, int numCellZ, double _diffusion, double _viscosity, const Eigen::Ref<const Eigen::Vector3d>& _ctrLoc, const Eigen::Ref<const Eigen::Vector3d>& cellSize) {
-			fluidBox = make_shared<myFluidBox>(numCellX, numCellY, numCellZ, _diffusion, _viscosity, deltaT, cellSize);
+		inline void buildFluidBox(int numCellX, int numCellY, int numCellZ, double _diffusion, double _viscosity, int _slvIters, const Eigen::Ref<const Eigen::Vector3d>& _ctrLoc, const Eigen::Ref<const Eigen::Vector3d>& cellSizeVec) {
+			fluidBox = make_shared<myFluidBox>(numCellX, numCellY, numCellZ, _diffusion, _viscosity, deltaT, _slvIters, cellSizeVec);
 			fluidBox->setCenter (Eigen::Vector3d(_ctrLoc));
 		}//buildFluidBox
 		//initialize system variables - run after any particles, constraints, colliders have been added or changed
@@ -200,7 +200,10 @@ namespace particleSystem{
 			if (msDragged) { addForcesToTinkerToys(fmult, msDragged, msDragVal); }				//adding dragged forces to system here
 			handlePartPartCollision();															//handle particle-particle interraction, with repeling force if close
 			buildCnstrntStruct(jumpCnstrnt);													//handle constraints here - rebuild constraint structure
+
+			//uses q and qdot to integrateforward - TODO implement higher order integrators
 			calcConstraintForces();																//handle constraints here - calculate constraint forces and matrices
+			//derivEvalCnstrnt();
 			applyConstraintForcesToSystem();													//handle collisions from contraint enforcement
 			invokeSolverDerivEval();															//invoke derivative handler
 		}//handleTTTimeStep
@@ -214,10 +217,7 @@ namespace particleSystem{
 					addShakeForceToFluid(fmult, msDragVal0, msDragVal1); 		res = false;			//setting false keeps force from compounding
 				}
 				fluidBox->myFluidBoxTimeStep();					//timestep snowglobe	
-
-				calcFluidForceForAllParticles(); 
-				
-				//handleGlobeTimeStep(fmult, res, msDragVal0, msDragVal1);
+				calcFluidForceForAllParticles(); 				
 				handlePartCldrCollision();//checks for, and handles, collisions for all particles to see if they hit the ground
 				handlePartPartCollision();
 			}
@@ -228,19 +228,20 @@ namespace particleSystem{
 				}
 			}
 			//calcAnkleForce();													//calc ankle forces based on derived forces
-
 			//TODO make all ankle forces and constraint structures calculated per seaweed strand (make a class)
-			for (unsigned int i = 0; i < invPend.size(); ++i) {
+			for (unsigned int i = 0; i < invPend.size(); ++i) {//for all pendula
 				invPend[i]->calcCnstrntFrc();
 				invPend[i]->applyConstraintForcesToSystem();
 			}
+
+			invokeSolverDerivEval();											//invoke derivative handler
+
+
 			if (calcCOM) {
 				for (unsigned int i = 0; i < invPend.size(); ++i) {
 					invPend[i]->calcAndSetCOM();
 				}
 			}
-
-			invokeSolverDerivEval();											//invoke derivative handler
 
 			return res;
 		}
@@ -267,6 +268,34 @@ namespace particleSystem{
 			}
 		}//applyConstraintForcesToSystem
 
+		//integrate states locally - to enable easy constraint force re-satisfaction
+		void derivEvalCnstrnt() {
+			integrateCnstrnt();
+			advanceAllParticles();
+		}
+
+		 //apply new positions to system - call after integrate
+		void advanceAllParticles() {
+			Eigen::VectorXd nstate(6), nstateDot(6);
+			unsigned int pSize = p.size(), p_actIdx;
+			for (unsigned int pidx = 0; pidx < pSize; ++pidx) {
+				p_actIdx = 3 * pidx;
+				auto v1 = qdotnew.segment<3>(p_actIdx);
+				nstate << qnew.segment<3>(p_actIdx), v1;
+				nstateDot << v1, Eigen::Vector3d(0, 0, 0);
+				p[pidx]->advance(nstate, nstateDot);
+			}
+		}//advanceAllParticles
+
+
+		//integrate q and qdot using constraint force 
+		void integrateCnstrnt() {
+			qnew = q + globDeltaT * qdot;
+			qdotnew = qdot + globDeltaT * (Qhat + Q);
+		}
+
+
+
 		void calcMassAndWMat();
 
 		void calcConstraintForces();
@@ -290,8 +319,6 @@ namespace particleSystem{
 
 		int ID;
 		string name;
-
-		//Eigen::Vector3d ground;
 		Eigen::Vector3d shakeVal;
 		Eigen::Vector3d partCOM;
 
@@ -325,8 +352,8 @@ namespace particleSystem{
 			W,								//diagonal inverse mass matrix, 1 3x3 diag entry per particle, rest 0 - only stores non-zero values in rows of sparse vectors (3n x 3n)
 		//	spdInvM,						//inverse of mass matrix + kd*delT
 			M;								//diagonal mass matrix, 1 3x3 diag entry per particle, rest 0 - only stores non-zero values in rows of sparse vectors (3n x 3n)
-		Eigen::VectorXd q,										//q vector is position of all particles
-			qdot,									//velocity of all particles
+		Eigen::VectorXd q,qnew,									//q vector is position of all particles
+			qdot,qdotnew,									//velocity of all particles
 			Q,										//Q is vector of forces on each particle, from force acc
 			feedBack,								//feedback term - pd control/spd control
 			Qhat;// ,									//Qhat vector is constrain forces to apply to each particle - this is what is -applied- (result of constraint calculations) to force acc

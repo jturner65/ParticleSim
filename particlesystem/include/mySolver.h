@@ -12,6 +12,8 @@
 using namespace std;
 
 namespace particleSystem{
+	class myParticle;
+	class mySystem;
 	class mySolver {
 	public:
 
@@ -20,10 +22,7 @@ namespace particleSystem{
 
 		mySolver(SolverType _t);
 		virtual ~mySolver();
-
-		//mySolver(SolverType _t) :ID(++ID_gen), type(_t), lambda(2), invLam(0), lamHalf(0), hafMInvLam(0), oneMlamHalf(0) { setLambda(lambda); setIntegratorType(_t);}
-		//virtual ~mySolver() {}
-
+	
 		inline int getID() { return ID; }
 		inline SolverType getType() { return type; }
 
@@ -57,6 +56,7 @@ namespace particleSystem{
 		static unsigned int ID_gen;
 		int ID;
 		SolverType type;
+
 		double oldDelT;                         //for verlet integration in case time step changes
 	private:
 		double lambda, invLam, lamHalf, hafMInvLam, oneMlamHalf;                          //value for rk4 general form

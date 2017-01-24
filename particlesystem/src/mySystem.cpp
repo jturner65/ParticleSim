@@ -6,7 +6,7 @@ namespace particleSystem{
 	unsigned int mySystem::ID_gen = 0;
 	mySystem::mySystem(string _name, double _delT, int numP, int numF, int numC) :
 		ID(++ID_gen), name(_name), deltaT(_delT), solver(nullptr), fluidBox(nullptr), p(numP), f(numF), c(numC), colliders(), invPend(),
-		J(), Jdot(), W(), M(), q(), qdot(), Q(), feedBack(), Qhat(),//, lambda(), 
+		J(), Jdot(), W(), M(), q(), qdot(),qnew(),qdotnew(), Q(), feedBack(), Qhat(),//, lambda(), 
 		kpAra(numP), shakeVal(0, 0, 0), partCOM(0, 0, 0), flags(numFlags, false)
 	{
 		flags[showVel] = false;					//init to true, eventually control via UI
@@ -518,12 +518,6 @@ namespace particleSystem{
 		for (unsigned int cidx = 0; cidx < c.size(); ++cidx) {
 			kpAra[cidx] = calcAndApplyAnkleForce(cidx);
 		}
-
-		//
-		//
-		//for (unsigned int pidx = 0; pidx < p.size(); ++pidx) {
-		//	kpAra[pidx] = calcAndApplyAnkleForce(pidx);
-		//}
 	}//calcAndApplyAnkleForce
 
 	 //for inv pend calculate and apply appropriate "ankle" forces to counteract forces on constrained particle, return kp (with kd = 1/5 * deltat * kp)
@@ -571,8 +565,6 @@ namespace particleSystem{
 			//state.segment<12>(0) << p[idx]->getState(), p[idx]->getState(1);
 			//stateDot.segment<12>(0) << p[idx]->getStateDot(), p[idx]->getStateDot(1);
 			state << p[idx]->getState(), p[idx]->getState(1);
-
-
 
 			stateDot<< p[idx]->getStateDot(), p[idx]->getStateDot(1);
 

@@ -4,9 +4,11 @@
 namespace particleSystem{
 	unsigned int mySolver::ID_gen = 0;
 
-	mySolver::mySolver(SolverType _t) :ID(++ID_gen), type(_t), lambda(2), invLam(0), lamHalf(0), hafMInvLam(0), oneMlamHalf(0) { setLambda(lambda); setIntegratorType(_t); }
+	mySolver::mySolver(SolverType _t) :ID(++ID_gen), type(_t), lambda(2), invLam(0), lamHalf(0), hafMInvLam(0), oneMlamHalf(0)
+	{ setLambda(lambda); setIntegratorType(_t); }
 	mySolver::~mySolver() {}
 
+	
 	//USING single state and single statedot vectors
 	//set function pointer based on passed type of solver
 	void mySolver::setIntegratorType(SolverType type) {
@@ -29,7 +31,7 @@ namespace particleSystem{
 		Eigen::VectorXd res(6), sDotDot(6); 
 		sDotDot << _stateDot.segment<3>(3), 0, 0, 0;
 		res = _state.segment<6>(0) + (deltaT *_stateDot.segment<6>(0)) + (.5 * deltaT * deltaT) * sDotDot;
-	//	res.segment<3>(0) += (_stateDot.segment<3>(3) * (.5 * deltaT * deltaT));			//add acceleration   to position calc
+
 		return res;
 	}
 
@@ -46,8 +48,8 @@ namespace particleSystem{
 		Eigen::VectorXd res(9);
 		res.setZero();
 		res.segment<6>(0) = _state.segment<6>(0) + (deltaT *_stateDot.segment<6>(0));
-		//add updated force here - recalc constraint frces
-		res.segment<3>(6) = _stateDot.segment<3>(3);
+		//add updated force here - recalc constraint frces TODO 
+		res.segment<3>(6) = _stateDot.segment<3>(3);// +deltaT*(_stateDot.segment<3>(3) - _stateDot.segment<3>(9));		//finite diff for new force
 		return res;
 	}
 

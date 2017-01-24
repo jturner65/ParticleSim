@@ -28,43 +28,10 @@ namespace particleSystem {
 		typedef particleSystem::aligned_containers<Eigen::Vector3d>::vector_t eignVecTyp;
 		eignVecTyp vortVec, accelVecX, accelVecY, accelVecZ;
 
-		myFluidBox() :ID(++ID_gen) {}//std::cout<<"building fluid box ID : "<<ID<<std::endl;	}
-		myFluidBox(int _numCellX, int _numCellY, int _numCellZ, double _diffusion, double _viscosity, double _deltaT, const Eigen::Ref<const Eigen::Vector3d>& _cellSz) :
-			ID(++ID_gen), numCellX(_numCellX), numCellY(_numCellY), numCellZ(_numCellZ), diff(_diffusion), visc(_viscosity), startLoc(0, 0, 0), sphereBnds(), ctrSzHalfNC(0, 0, 0), //sphereExtBnds(), 				//precalculated (center - sz*halfNumCell)/sz for force query for particles
-			deltaT(_deltaT), center(0, 0, 0), numCellXY(numCellX * numCellY), numCells(numCellX * numCellY * numCellZ), cellSz(_cellSz), isMesh(false), radSq(0){
-			initVecs();
 
-			halfNmCellX = (numCellX / 2);
-			halfNmCellY = (numCellY / 2);
-			halfNmCellZ = (numCellZ / 2);
-
-			//corresponds to x,y,z idx of "internal" array (inside single cube boundary layer
-			sx1i = numCellX - 1;
-			sy1i = numCellY - 1;
-			sz1i = numCellZ - 1;
-			//corresponds to x,y,z size of internal cube array of nodes used for sim
-			sx2i = numCellX - 2;
-			sy2i = numCellY - 2;
-			sz2i = numCellZ - 2;
-			hOSxd = 1.0 / (2.0* sx2i); hOSyd = 1.0 / (2.0* sy2i); hOSzd = 1.0 / (2.0* sz2i);
-			hSxd = 0.5f* sx2i; hSyd = 0.5f* sy2i; hSzd = 0.5f* sz2i;
-			memSetNumElems = sizeof(Vx0[0]) * numCells;
-			//location to start rendering
-			setStartLoc();
-		}
-
-		~myFluidBox() {
-			delete[] oldDensity;
-			delete[] density;
-			delete[] isOOB;
-			delete[] Vx;
-			delete[] Vy;
-			delete[] Vz;
-			delete[] Vx0;
-			delete[] Vy0;
-			delete[] Vz0;
-		}
-
+		myFluidBox();
+		myFluidBox(int _numCellX, int _numCellY, int _numCellZ, double _diffusion, double _viscosity, double _deltaT, int _sviters, const Eigen::Ref<const Eigen::Vector3d>& _cellSz);
+		virtual ~myFluidBox();
 		inline void initVecs() {
 			oldDensity = new double[numCells];
 			density = new double[numCells];
@@ -91,7 +58,7 @@ namespace particleSystem {
 
 		//if this fluidbox uses a mesh (like a sphere or some other mesh), set up boundary 
 		//structure to hold idx of upper fwd left corner of cell containing bound and vector 
-		//from center of cell to center of mesh, whose magnitude corresponds 
+		//from center of cell to center of mesh, whO2Se magnitude corresponds 
 		//amount of cube inside mesh.
 		inline void initMeshBounds() {
 			double* sq_dists = new double[numCells];
@@ -245,55 +212,24 @@ namespace particleSystem {
 		//inline void lin_solveSphere(double* x, double* x0, double* y, double* y0, double* z, double* z0, double a, double c, int iter);
 
 		//solve for all dirs simulataneously
-		inline void lin_solveSphere(double* x, double* x0, double* y, double* y0, double* z, double* z0, double a, double c, unsigned int iter) {
-			if (a == 0) {
-				std::memcpy(&x, &x0, sizeof x0);
-				std::memcpy(&y, &y0, sizeof y0);
-				std::memcpy(&z, &z0, sizeof z0);
-				set_bndSphere3(x, y, z);
-			}
-			else {
-				unsigned int idx0, idx1, idx2, idx3, idx4, idx5, idx6;
-				for (unsigned int itr = 0; itr < iter; ++itr) {
-					for (unsigned int k = 1; k < sz1i; ++k) {
-						for (unsigned int j = 1; j < sy1i; ++j) {
-							for (unsigned int i = 1; i < sx1i; ++i) {
-								idx0 = IX(i, j, k);
-								if (isOOB[idx0]) { continue; }
-								idx1 = IX(i + 1, j, k);
-								idx2 = IX(i - 1, j, k);
-								idx3 = IX(i, j + 1, k);
-								idx4 = IX(i, j - 1, k);
-								idx5 = IX(i, j, k + 1);
-								idx6 = IX(i, j, k - 1);
-								x[idx0] = (x0[idx0] + a * (x[idx1] + x[idx2] + x[idx3] + x[idx4] + x[idx5] + x[idx6])) / c;
-								y[idx0] = (y0[idx0] + a * (y[idx1] + y[idx2] + y[idx3] + y[idx4] + y[idx5] + y[idx6])) / c;
-								z[idx0] = (z0[idx0] + a * (z[idx1] + z[idx2] + z[idx3] + z[idx4] + z[idx5] + z[idx6])) / c;
-							}//for i
-						}//for j
-					}//for k
-					set_bndSphere3(x, y, z);
-				}//for itr
-			}//if a != 0
-		}//lin_solveSphere
+		void lin_solveSphere(double* x, double* x0, double* y, double* y0, double* z, double* z0, double a, double c);
 
-
-		inline void diffuseSphere(double* x, double* x0, double* y, double* y0, double* z, double* z0, double viscdiff, int iter){
+		inline void diffuseSphere(double* x, double* x0, double* y, double* y0, double* z, double* z0, double viscdiff){
 			//void myFluidBox::diffuseSphere(double* x, double* x0, double* y, double* y0, double* z, double* z0, double viscdiff, int iter) {
-			double delVisc = (deltaT*viscdiff*(numCells));
-			lin_solveSphere(x, x0, y, y0, z, z0, delVisc, 1 + 6 * delVisc, iter);
+			double delVisc = (deltaT*viscdiff*numCells);
+			lin_solveSphere(x, x0, y, y0, z, z0, delVisc, 1 + 6 * delVisc);
 		}
 
 		inline void advectSphere(double* _velx, double* _velx0, double* _vely, double* _vely0, double* _velz, double* _velz0);
-		inline void projectSphere(double* velocX, double* velocY, double* velocZ, double* p, double* div, unsigned int iter);
-		inline void diffSphDens(double* x, double* xOld, double viscdiff, unsigned int iter, int _numCells);
+		inline void projectSphere(double* velocX, double* velocY, double* velocZ, double* p, double* div);
+		inline void diffSphDens(double* x, double* xOld, double viscdiff);
 		inline void advSphDens(double* d, double* d0, double* velocX, double* velocY, double* velocZ);
 
 		//for simple box
 		//inline void lin_solve(int b, double* x, double* x0, double a, double c, int iter);
-		inline void lin_solve(int b, double* x, double* x0, double a, double c, unsigned int iter) {
+		inline void lin_solve(int b, double* x, double* x0, double a, double c) {
 			//double cInv = 1.0 / c;
-			for (unsigned int itr = 0; itr < iter; ++itr) {
+			for (unsigned int itr = 0; itr < slvIters; ++itr) {
 				for (unsigned int k = 1; k < sz1i; ++k) {
 					for (unsigned int j = 1; j < sy1i; ++j) {
 						for (unsigned int i = 1; i < sx1i; ++i) {
@@ -312,9 +248,13 @@ namespace particleSystem {
 		}//lin solvers
 
 
-		inline void diffuse(int b, double* x, double* xOld, double viscdiff, int iter, int _numCells);
+//		inline void diffuse(int b, double* x, double* xOld, double viscdiff, int _numCells);
+		inline void diffuse(int b, double* x, double* xOld, double viscdiff, int _numCells) {
+			double delVisc = (deltaT*viscdiff*(_numCells));
+			lin_solve(b, x, xOld, delVisc, 1 + 6 * delVisc);
+		}
 		inline void advect(int b, double* d, double* d0, double* velocX, double* velocY, double* velocZ);
-		inline void project(double* velocX, double* velocY, double* velocZ, double* p, double* div, int iter);
+		inline void project(double* velocX, double* velocY, double* velocZ, double* p, double* div);
 
 		void myFluidBoxTimeStep();
 		void myFluidSphereTimeStep();
@@ -359,12 +299,16 @@ namespace particleSystem {
 
 	public : 
 		//precomputed constants
-		double hOSxd, hOSyd, hOSzd, hSxd, hSyd, hSzd;
+		double
+			vortEps,														//amount of vorticity allowed TODO make UI enterable
+			hO2Sxd, hO2Syd, hO2Szd,									
+			hSxd, hSyd, hSzd;
 		unsigned int 
 			memSetNumElems,													//holds size of arrays in bytes
 			sz1i, sz2i,
 			sx1i, sx2i,
-			sy1i, sy2i;
+			sy1i, sy2i,
+			slvIters;															//# of reptitions of GS solver
 
 		//sstd::vector<int> sphereExtBnds;									//cells where no fluid should go.
 	};

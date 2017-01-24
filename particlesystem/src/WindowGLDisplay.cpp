@@ -195,8 +195,9 @@ void WindowGLDisplay::render()
 	if ((MyParticleWorld::systems[gCurrentScene]->partCOM).norm() != 0) {//draw inv pend COM
 		drawPartsCOM(partRadDraw * 2);
 	}
-	if (MyParticleWorld::systems[gCurrentScene]->flags[mySystem::showVel] && ((SNOW_GLOBE == gCurrentScene) || (MPM_FLUID == gCurrentScene) || (SEAWEED == gCurrentScene))) {
-        drawFluidVel( MyParticleWorld::systems[gCurrentScene]);
+	//if (MyParticleWorld::systems[gCurrentScene]->flags[mySystem::showVel] && ((SNOW_GLOBE == gCurrentScene) || (MPM_FLUID == gCurrentScene) || (SEAWEED == gCurrentScene))) {
+	if (MyParticleWorld::flags[MyParticleWorld::showVels] && ((SNOW_GLOBE == gCurrentScene) || (MPM_FLUID == gCurrentScene) || (SEAWEED == gCurrentScene))) {
+		drawFluidVel( MyParticleWorld::systems[gCurrentScene]);
     }
 
 	// -------------------------------your drawing code ends here  -----------------------------------
@@ -250,12 +251,12 @@ void WindowGLDisplay::drawFluidVel(shared_ptr<mySystem> system){
     glPushMatrix();
     glColor4d(1.0f, 0.0f, 0.0f, .1f);
 	Eigen::Vector3d v(0,0,0);
-    float vecLen = 1000;
+    float vecLen = 1.0;
 	glTranslated(system->fluidBox->startLoc(0),	 system->fluidBox->startLoc(1), system->fluidBox->startLoc(2));
 	Eigen::Vector3d vertLoc(0, 0, 0);
-	for (unsigned int k = 0; k < system->fluidBox->sx1i; ++k) {
-		for (unsigned int j = 0; j < system->fluidBox->sy1i; ++j) {
-			for (unsigned int i = 0; i < system->fluidBox->sz1i; ++i) {
+	for (unsigned int k = 1; k < system->fluidBox->sx1i; ++k) {
+		for (unsigned int j = 1; j < system->fluidBox->sy1i; ++j) {
+			for (unsigned int i = 1; i < system->fluidBox->sz1i; ++i) {
 				vertLoc << i + .5, j + .5, k + .5;
 				vertLoc.cwiseProduct(system->fluidBox->cellSz);
 				glPushMatrix();
@@ -425,14 +426,20 @@ int WindowGLDisplay::handle(int event)
 
         case fltk::SHORTCUT:{
             int key = fltk::event_key();
-            cout<<"Key pressed : ";
+            cout<<"Key pressed : " << key << endl; 
+			switch (key) {
+				case 118: {//v key
+					MyParticleWorld::flags[MyParticleWorld::showVels] = !MyParticleWorld::flags[MyParticleWorld::showVels];
+					cout << "Vels showing : " << (MyParticleWorld::flags[MyParticleWorld::showVels] ? "True" : "False") << endl;
+				break; }
+			}
             //if(key==32){
             //    cout<<"Space bar"<<endl;
             //    MyParticleWorld::massSprFrcOrVel = !MyParticleWorld::massSprFrcOrVel;
             //    cout<<"Force or Velocity mod on center "<<(MyParticleWorld::massSprFrcOrVel ? "Force" : "Velocity")<<endl;
             //}
             //else 
-            {cout<<key<<endl;}
+            
 
             break;}
 

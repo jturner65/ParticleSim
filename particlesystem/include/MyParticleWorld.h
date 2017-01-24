@@ -40,9 +40,10 @@ class MyParticleWorld{
 		static const int debug						= 0;					//init to false
 		static const int msClicked					= 1;					//init to false			
 		static const int msDragged					= 2;					//init to false			
-		static const int msReleased					= 3;					//init to false		
+		static const int msReleased					= 3;					//init to false	
+		static const int showVels					= 4;					//for fluid sims - init to false	
 
-		static const int numFlags = 4; 
+		static const int numFlags = 5; 
 
 		//static int curSolverIDX;
 		static int shakeCountdown;

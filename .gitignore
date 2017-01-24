@@ -7,3 +7,5 @@
 *.pdb
 *.tga
 /particlesystem/*.opendb
+/particlesystem/Debug
+/particlesystem/Release
