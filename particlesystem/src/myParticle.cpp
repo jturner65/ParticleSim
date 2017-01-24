@@ -21,7 +21,6 @@ namespace particleSystem{
 		origColor = color;
 
 	}
-
 	myParticle::~myParticle() {		}//destructor	
 
 	void myParticle::applyForce(const Eigen::Ref<const Eigen::Vector3d>& _force) {

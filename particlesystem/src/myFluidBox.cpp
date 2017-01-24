@@ -7,7 +7,44 @@ using namespace std;
 namespace particleSystem{
 	unsigned int myFluidBox::ID_gen = 0;
 
+	myFluidBox::myFluidBox() :ID(++ID_gen) {}//std::cout<<"building fluid box ID : "<<ID<<std::endl;	}
+	myFluidBox::myFluidBox(int _numCellX, int _numCellY, int _numCellZ, double _diffusion, double _viscosity, double _deltaT, int _sviters, const Eigen::Ref<const Eigen::Vector3d>& _cellSz) :
+		ID(++ID_gen), numCellX(_numCellX), numCellY(_numCellY), numCellZ(_numCellZ), diff(_diffusion), visc(_viscosity), slvIters(_sviters), startLoc(0, 0, 0), sphereBnds(), ctrSzHalfNC(0, 0, 0), //sphereExtBnds(), 				//precalculated (center - sz*halfNumCell)/sz for force query for particles
+		deltaT(_deltaT), center(0, 0, 0), numCellXY(numCellX * numCellY), numCells(numCellX * numCellY * numCellZ), cellSz(_cellSz), isMesh(false), radSq(0) {
 
+		vortEps = deltaT * .01;			//TODO allow for UI input
+		initVecs();
+
+		halfNmCellX = (numCellX / 2);
+		halfNmCellY = (numCellY / 2);
+		halfNmCellZ = (numCellZ / 2);
+
+		//corresponds to x,y,z idx of "internal" array (inside single cube boundary layer
+		sx1i = numCellX - 1;
+		sy1i = numCellY - 1;
+		sz1i = numCellZ - 1;
+		//corresponds to x,y,z size of internal cube array of nodes used for sim
+		sx2i = numCellX - 2;
+		sy2i = numCellY - 2;
+		sz2i = numCellZ - 2;
+		hO2Sxd = 1.0 / (2.0* sx2i); hO2Syd = 1.0 / (2.0* sy2i); hO2Szd = 1.0 / (2.0* sz2i);
+		hSxd = 0.5f* sx2i; hSyd = 0.5f* sy2i; hSzd = 0.5f* sz2i;
+		memSetNumElems = sizeof(Vx0[0]) * numCells;
+		//location to start rendering
+		setStartLoc();
+	}
+
+	myFluidBox::~myFluidBox() {
+		delete[] oldDensity;
+		delete[] density;
+		delete[] isOOB;
+		delete[] Vx;
+		delete[] Vy;
+		delete[] Vz;
+		delete[] Vx0;
+		delete[] Vy0;
+		delete[] Vz0;
+	}
 	void myFluidBox::set_bndCube(int b, double* x) {
 		//int N = size;//for reading ease
 		//int sz1 = numCellZ - 1, sz2 = numCellZ - 2,
@@ -115,15 +152,15 @@ namespace particleSystem{
 		set_bndCube(b, d);
 	}
 
-	void myFluidBox::project(double* velocX, double* velocY, double* velocZ, double* p, double* div, int iter) {
+	void myFluidBox::project(double* velocX, double* velocY, double* velocZ, double* p, double* div) {
 		//double sx2 = sx2i, sy2 = numCellY - 2, sz2 = numCellZ - 2;
 		for (unsigned int k = 1; k < sz1i; ++k) {
 			for (unsigned int j = 1; j < sy1i; ++j) {
 				for (unsigned int i = 1; i < sx1i; ++i) {
 					div[IX(i, j, k)] = -(
-						  (velocX[IX(i + 1, j, k)] - velocX[IX(i - 1, j, k)])*hOSxd
-						+ (velocY[IX(i, j + 1, k)] - velocY[IX(i, j - 1, k)])*hOSyd
-						+ (velocZ[IX(i, j, k + 1)] - velocZ[IX(i, j, k - 1)])*hOSzd
+						  (velocX[IX(i + 1, j, k)] - velocX[IX(i - 1, j, k)])*hO2Sxd
+						+ (velocY[IX(i, j + 1, k)] - velocY[IX(i, j - 1, k)])*hO2Syd
+						+ (velocZ[IX(i, j, k + 1)] - velocZ[IX(i, j, k - 1)])*hO2Szd
 						);               
 					p[IX(i, j, k)] = 0;
 				}
@@ -131,7 +168,7 @@ namespace particleSystem{
 		}
 		set_bndCube(0, div);
 		//set_bnd(0, p);
-		lin_solve(0, p, div, 1, 6, iter);
+		lin_solve(0, p, div, 1, 6);
 
 		for (unsigned int k = 1; k < sz1i; ++k) {
 			for (unsigned int j = 1; j < sy1i; ++j) {
@@ -147,10 +184,10 @@ namespace particleSystem{
 		set_bndCube(3, velocZ);
 	}
 
-	void myFluidBox::diffuse(int b, double* x, double* xOld, double viscdiff, int iter, int _numCells) {
-		double delVisc = (deltaT*viscdiff*(numCells));
-		lin_solve(b, x, xOld, delVisc, 1 + 6 * delVisc, iter);
-	}
+	//void myFluidBox::diffuse(int b, double* x, double* xOld, double viscdiff, int _numCells) {
+	//	double delVisc = (deltaT*viscdiff*(numCells));
+	//	lin_solve(b, x, xOld, delVisc, 1 + 6 * delVisc);
+	//}
 
 	void myFluidBox::myFluidBoxTimeStep() {
 		addSource(Vx, Vx0);
@@ -161,11 +198,11 @@ namespace particleSystem{
 
 		std::swap(Vx, Vx0); std::swap(Vy, Vy0); std::swap(Vz, Vz0);
 
-		diffuse(1, Vx, Vx0, visc, 8, numCellX);
-		diffuse(2, Vy, Vy0, visc, 8, numCellY);
-		diffuse(3, Vz, Vz0, visc, 8, numCellZ);
+		diffuse(1, Vx, Vx0, visc, numCellX);
+		diffuse(2, Vy, Vy0, visc, numCellY);
+		diffuse(3, Vz, Vz0, visc, numCellZ);
 
-		project(Vx, Vy, Vz, Vx0, Vy0, 8);
+		project(Vx, Vy, Vz, Vx0, Vy0);
 
 		std::swap(Vx, Vx0); std::swap(Vy, Vy0); std::swap(Vz, Vz0);
 
@@ -173,10 +210,10 @@ namespace particleSystem{
 		advect(2, Vy, Vy0, Vx0, Vy0, Vz0);
 		advect(3, Vz, Vz0, Vx0, Vy0, Vz0);
 
-		project(Vx, Vy, Vz, Vx0, Vy0, 8);
+		project(Vx, Vy, Vz, Vx0, Vy0);
 
 		std::swap(density, oldDensity);
-		diffuse(0, density, oldDensity, diff, 8, numCellX);
+		diffuse(0, density, oldDensity, diff, numCellX);
 		std::swap(density, oldDensity);
 		advect(0, density, oldDensity, Vx0, Vy0, Vz0);
 		resetOldVals();
@@ -192,17 +229,19 @@ namespace particleSystem{
 		//addSource(density, oldDensity);
 
 		std::swap(Vx, Vx0); std::swap(Vy, Vy0); std::swap(Vz, Vz0);
-		diffuseSphere(Vx, Vx0, Vy, Vy0, Vz, Vz0, visc, 8);
+		double delVisc = (deltaT*visc*numCells);
+		//diffusion of velocity
+		lin_solveSphere(Vx, Vx0, Vy, Vy0, Vz, Vz0, delVisc, 1 + 6 * delVisc);
 
-		projectSphere(Vx, Vy, Vz, Vx0, Vy0, 8);
+		projectSphere(Vx, Vy, Vz, Vx0, Vy0);
 
 		std::swap(Vx, Vx0); std::swap(Vy, Vy0); std::swap(Vz, Vz0);
 		advectSphere(Vx, Vx0, Vy, Vy0, Vz, Vz0);
 
-		projectSphere(Vx, Vy, Vz, Vx0, Vy0, 8);
+		projectSphere(Vx, Vy, Vz, Vx0, Vy0);
 
 		std::swap(density, oldDensity);
-		diffSphDens(density, oldDensity, diff, 8, numCellX);
+		diffSphDens(density, oldDensity, diff);
 		std::swap(density, oldDensity);
 		advSphDens(density, oldDensity, Vx, Vy, Vz);
 		//vort confine here
@@ -266,14 +305,14 @@ namespace particleSystem{
 	}//advectSphere
 
 	//diffuse density - 1 d but use sphere bnds
-	void myFluidBox::diffSphDens(double* x, double* x0, double viscdiff, unsigned int iter, int _numCells) {
+	void myFluidBox::diffSphDens(double* x, double* x0, double viscdiff) {
 		double a = (deltaT*viscdiff*(numCells)), c = (1 + 6 * a);
 		int idx;
 		if(a==0){
 			std::memcpy(&x, &x0, sizeof x0);
 			set_bndDiffSphere(x);
 		} else {
-			for (unsigned int itr = 0; itr < iter; ++itr) {
+			for (unsigned int itr = 0; itr < slvIters; ++itr) {
 				for (unsigned int k = 1; k < sz1i; ++k) {
 					for (unsigned int j = 1; j < sy1i; ++j) {
 						for (unsigned int i = 1; i < sx1i; ++i) {
@@ -324,11 +363,43 @@ namespace particleSystem{
 		set_bndDiffSphere(d);
 	}//advSphDens
 
+	void myFluidBox::lin_solveSphere(double* x, double* x0, double* y, double* y0, double* z, double* z0, double a, double c) {
+		if (a == 0) {
+			std::memcpy(&x, &x0, sizeof x0);
+			std::memcpy(&y, &y0, sizeof y0);
+			std::memcpy(&z, &z0, sizeof z0);
+			set_bndSphere3(x, y, z);
+		}
+		else {
+			unsigned int idx0, idx1, idx2, idx3, idx4, idx5, idx6;
+			for (unsigned int itr = 0; itr < slvIters; ++itr) {
+				for (unsigned int k = 1; k < sz1i; ++k) {
+					for (unsigned int j = 1; j < sy1i; ++j) {
+						for (unsigned int i = 1; i < sx1i; ++i) {
+							idx0 = IX(i, j, k);
+							if (isOOB[idx0]) { continue; }
+							idx1 = IX(i + 1, j, k);
+							idx2 = IX(i - 1, j, k);
+							idx3 = IX(i, j + 1, k);
+							idx4 = IX(i, j - 1, k);
+							idx5 = IX(i, j, k + 1);
+							idx6 = IX(i, j, k - 1);
+							x[idx0] = (x0[idx0] + a * (x[idx1] + x[idx2] + x[idx3] + x[idx4] + x[idx5] + x[idx6])) / c;
+							y[idx0] = (y0[idx0] + a * (y[idx1] + y[idx2] + y[idx3] + y[idx4] + y[idx5] + y[idx6])) / c;
+							z[idx0] = (z0[idx0] + a * (z[idx1] + z[idx2] + z[idx3] + z[idx4] + z[idx5] + z[idx6])) / c;
+						}//for i
+					}//for j
+				}//for k
+				set_bndSphere3(x, y, z);
+			}//for itr
+		}//if a != 0
+	}//lin_solveSphere
+
 	//vorticity confinement - add back vorticity details lost through numerical dissipation
 	//vortN is unused array to hold calcs
 	void myFluidBox::vorticityConfinement(double* vortN) {
 		unsigned int idx, idx_ijp1k, idx_ijm1k, idx_ip1jk, idx_im1jk, idx_ijkm1, idx_ijkp1;
-		double vortEps = deltaT * .01;	//TODO change to allow for user input
+		//double vortEps = deltaT * .01;	//TODO change to allow for user input
 		for (unsigned int k = 1; k < sz1i; ++k) {
 			for (unsigned int j = 1; j < sy1i; ++j) {
 				for (unsigned int i = 1; i < sx1i; ++i) {
@@ -337,9 +408,9 @@ namespace particleSystem{
 					idx_ip1jk = IX(i + 1, j, k); idx_im1jk = IX(i - 1, j, k); idx_ijp1k = IX(i, j + 1, k); idx_ijm1k = IX(i, j - 1, k); idx_ijkp1 = IX(i, j, k + 1); idx_ijkm1 = IX(i, j, k - 1);
 					//curl operation del cross u -> partial z w/respect to y is the finite diff of the z vels across the y coords
 					vortVec[idx] << 
-						((Vy[idx_ijkp1] - Vy[idx_ijkm1]) * hOSyd) - ((Vz[idx_ijp1k] - Vz[idx_ijm1k]) * hOSzd),
-						((Vz[idx_ip1jk] - Vz[idx_im1jk]) * hOSzd) - ((Vx[idx_ijkp1] - Vx[idx_ijkm1]) * hOSxd),
-						((Vx[idx_ijp1k] - Vx[idx_ijm1k]) * hOSxd) - ((Vy[idx_ip1jk] - Vy[idx_im1jk]) * hOSyd);
+						((Vy[idx_ijkp1] - Vy[idx_ijkm1]) * hO2Syd) - ((Vz[idx_ijp1k] - Vz[idx_ijm1k]) * hO2Szd),
+						((Vz[idx_ip1jk] - Vz[idx_im1jk]) * hO2Szd) - ((Vx[idx_ijkp1] - Vx[idx_ijkm1]) * hO2Sxd),
+						((Vx[idx_ijp1k] - Vx[idx_ijm1k]) * hO2Sxd) - ((Vy[idx_ip1jk] - Vy[idx_im1jk]) * hO2Syd);
 				}
 			}
 		}
@@ -354,7 +425,7 @@ namespace particleSystem{
 					idx = IX(i, j, k);
 					if (vortN[idx] < .0000001) {	continue;}
 					vortVec[idx].normalize();
-					eta << ((vortN[IX(i + 1, j, k)] - vortN[IX(i - 1, j, k)]) * hOSxd), ((vortN[IX(i, j + 1, k)] - vortN[IX(i, j - 1, k)]) * hOSyd), ( (vortN[IX(i, j, k + 1)] - vortN[IX(i, j, k - 1)]) * hOSzd);
+					eta << ((vortN[IX(i + 1, j, k)] - vortN[IX(i - 1, j, k)]) * hO2Sxd), ((vortN[IX(i, j + 1, k)] - vortN[IX(i, j - 1, k)]) * hO2Syd), ( (vortN[IX(i, j, k + 1)] - vortN[IX(i, j, k - 1)]) * hO2Szd);
 					eta.normalize();
 					vf = vortEps * (eta.cross(vortVec[idx]));
 					//cout << "Vx " << idx << " before :  " << Vx[idx] << " vortN : " << vortN[idx] << " invDivX : " << invDivX << " eta : " << eta(0) << "," << eta(1) << "," << eta(2) << " vf : " << vf(0) << "," << vf(1) << "," << vf(2) << " vort : " << vort(0) << "," << vort(1) << "," << vort(2);
@@ -379,9 +450,9 @@ namespace particleSystem{
 					if (isOOB[idx]) { continue; }
 					idx_ip1jk = IX(i + 1, j, k);idx_im1jk = IX(i - 1, j, k);idx_ijp1k = IX(i, j + 1, k);idx_ijm1k = IX(i, j - 1, k);idx_ijkp1 = IX(i, j, k + 1);idx_ijkm1 = IX(i, j, k - 1);
 												
-					accelVecX[idx] << (Vx[idx_ip1jk] - Vx[idx_im1jk]) * hOSxd, (Vx[idx_ijp1k] - Vx[idx_ijm1k]) * hOSyd, (Vx[idx_ijkp1] - Vx[idx_ijkm1]) * hOSzd;//interpAccel(Vx, idx_ip1jk, idx_im1jk, idx_ijp1k, idx_ijm1k, idx_ijkp1, idx_ijkm1);
-					accelVecY[idx] << (Vy[idx_ip1jk] - Vy[idx_im1jk]) * hOSxd, (Vy[idx_ijp1k] - Vy[idx_ijm1k]) * hOSyd, (Vy[idx_ijkp1] - Vy[idx_ijkm1]) * hOSzd;//interpAccel(Vy, idx_ip1jk, idx_im1jk, idx_ijp1k, idx_ijm1k, idx_ijkp1, idx_ijkm1);
-					accelVecZ[idx] << (Vz[idx_ip1jk] - Vz[idx_im1jk]) * hOSxd, (Vz[idx_ijp1k] - Vz[idx_ijm1k]) * hOSyd, (Vz[idx_ijkp1] - Vz[idx_ijkm1]) * hOSzd;//interpAccel(Vz, idx_ip1jk, idx_im1jk, idx_ijp1k, idx_ijm1k, idx_ijkp1, idx_ijkm1);
+					accelVecX[idx] << (Vx[idx_ip1jk] - Vx[idx_im1jk]) * hO2Sxd, (Vx[idx_ijp1k] - Vx[idx_ijm1k]) * hO2Syd, (Vx[idx_ijkp1] - Vx[idx_ijkm1]) * hO2Szd;//interpAccel(Vx, idx_ip1jk, idx_im1jk, idx_ijp1k, idx_ijm1k, idx_ijkp1, idx_ijkm1);
+					accelVecY[idx] << (Vy[idx_ip1jk] - Vy[idx_im1jk]) * hO2Sxd, (Vy[idx_ijp1k] - Vy[idx_ijm1k]) * hO2Syd, (Vy[idx_ijkp1] - Vy[idx_ijkm1]) * hO2Szd;//interpAccel(Vy, idx_ip1jk, idx_im1jk, idx_ijp1k, idx_ijm1k, idx_ijkp1, idx_ijkm1);
+					accelVecZ[idx] << (Vz[idx_ip1jk] - Vz[idx_im1jk]) * hO2Sxd, (Vz[idx_ijp1k] - Vz[idx_ijm1k]) * hO2Syd, (Vz[idx_ijkp1] - Vz[idx_ijkm1]) * hO2Szd;//interpAccel(Vz, idx_ip1jk, idx_im1jk, idx_ijp1k, idx_ijm1k, idx_ijkp1, idx_ijkm1);
 
 				}
 			}
@@ -394,7 +465,7 @@ namespace particleSystem{
 
 	}//vorticityParticles
 
-	void myFluidBox::projectSphere(double* velocX, double* velocY, double* velocZ, double* p, double* div, unsigned int iter) {
+	void myFluidBox::projectSphere(double* velocX, double* velocY, double* velocZ, double* p, double* div) {
 		unsigned int idx;
 		for (unsigned int k = 1; k < sz1i; ++k) {
 			for (unsigned int j = 1; j < sy1i; ++j) {
@@ -402,17 +473,18 @@ namespace particleSystem{
 					idx = IX(i, j, k);
 					p[idx] = 0;
 					if (isOOB[idx]) {	div[idx] = 0;	continue; }
+					//when using mac grid, change to * 1/sxi instead of 1/2sxi
 					div[idx] = -(
-						(velocX[IX(i + 1, j, k)] - velocX[IX(i - 1, j, k)]) * hOSxd
-						+(velocY[IX(i, j + 1, k)] - velocY[IX(i, j - 1, k)]) * hOSyd
-						+(velocZ[IX(i, j, k + 1)] - velocZ[IX(i, j, k - 1)]) * hOSzd
+						(velocX[IX(i + 1, j, k)] - velocX[IX(i - 1, j, k)]) * hO2Sxd
+						+(velocY[IX(i, j + 1, k)] - velocY[IX(i, j - 1, k)]) * hO2Syd
+						+(velocZ[IX(i, j, k + 1)] - velocZ[IX(i, j, k - 1)]) * hO2Szd
 						);
 				}
 			}
 		}
 		set_bndDiffSphere(div);
 		set_bndDiffSphere(p);
-		for (unsigned int itr = 0; itr < iter; ++itr) {
+		for (unsigned int itr = 0; itr < slvIters; ++itr) {
 			for (unsigned int k = 1; k < sz1i; ++k) {
 				for (unsigned int j = 1; j < sy1i; ++j) {
 					for (unsigned int i = 1; i < sx1i; ++i) {
@@ -528,9 +600,12 @@ namespace particleSystem{
 		vector<int> idxs(8); int cnt = 0;
 		for (unsigned int z = 0; z < 2; ++z) {for (unsigned int y = 0; y < 2; ++y) {for (unsigned int x = 0; x < 2; ++x) { idxs[cnt++] = IX(tX[x], tY[y], tZ[z]);}}}
 	*/	
-		int idx000 = IX(forceIDXBnd(intLocX, sx1i,0),	forceIDXBnd(intLocY, sy1i,0),	forceIDXBnd(intLocZ, sz1i,0)),
-			idx111 = IX(forceIDXBnd(intLocX + 1, sx1i,0), forceIDXBnd(intLocY + 1, sy1i,0),	forceIDXBnd(intLocZ + 1, sz1i,0));
-	
+		int idx000 = IX(forceIDXBnd(intLocX, sx1i, 0), forceIDXBnd(intLocY, sy1i, 0), forceIDXBnd(intLocZ, sz1i, 0)),
+			idx111 = IX(forceIDXBnd(intLocX + 1, sx1i, 0), forceIDXBnd(intLocY + 1, sy1i, 0), forceIDXBnd(intLocZ + 1, sz1i, 0));
+
+		//int idx000 = IX(forceIDXBnd(intLocX, sx2i, 1), forceIDXBnd(intLocY, sy2i, 1), forceIDXBnd(intLocZ, sz2i, 1)),
+		//	idx111 = IX(forceIDXBnd(intLocX + 1, sx2i, 1), forceIDXBnd(intLocY + 1, sy2i, 1), forceIDXBnd(intLocZ + 1, sz2i, 1));
+
 		//double valx = interpM1X * Vx[idx000] + interpX*Vx[idx111],
 		//	   valy = interpM1Y * Vy[idx000] + interpY*Vy[idx111],
 		//	   valz = interpM1Z * Vz[idx000] + interpZ*Vz[idx111];

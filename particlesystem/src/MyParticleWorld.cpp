@@ -224,6 +224,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
     ss<<SceneType2str[curSystemIDX];
 	//initialize scene with starting conditions	
 	systems[curSystemIDX] = std::make_shared<mySystem>(ss.str(), _deltaT, numP, numF, numC);
+	//systems[curSystemIDX]->this_sp = systems[curSystemIDX];
 
 	switch(curSystemIDX){
 		case BALL_DROP : {		//ball drop
@@ -255,7 +256,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 			systems[curSystemIDX]->buildGlobeCollider(.00001, 0, snowGlobRad, distFromSnowGlobe);
 			int numCells = (snowGlobRad + 1) * 4;
 			double cellDim = (snowGlobRad + 1) / (.5*numCells);
-			systems[curSystemIDX]->buildFluidBox(numCells, numCells, numCells, .0006, 0.0001, systems[curSystemIDX]->colliders.back()->center, Eigen::Vector3d(cellDim, cellDim, cellDim));
+			systems[curSystemIDX]->buildFluidBox(numCells, numCells, numCells, sgDiff, sgVisc, sgIters, systems[curSystemIDX]->colliders.back()->center, Eigen::Vector3d(cellDim, cellDim, cellDim));
 			systems[curSystemIDX]->fluidBox->radSq = snowGlobRad * snowGlobRad;
 			systems[curSystemIDX]->fluidBox->setIsMesh(true);
 			systems[curSystemIDX]->flags[systems[curSystemIDX]->useMassMat] = false;
@@ -280,7 +281,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 			systems[curSystemIDX]->buildGlobeCollider(.00001, 0, snowGlobRad, distFromSnowGlobe);
 			int numCells = (snowGlobRad + 1) * 4;
 			double cellDim = (snowGlobRad + 1) / (.5*numCells);
-			systems[curSystemIDX]->buildFluidBox(numCells, numCells, numCells, .0006, 0.0001, systems[curSystemIDX]->colliders.back()->center, Eigen::Vector3d(cellDim, cellDim, cellDim));
+			systems[curSystemIDX]->buildFluidBox(numCells, numCells, numCells, sgDiff, sgVisc, sgIters, systems[curSystemIDX]->colliders.back()->center, Eigen::Vector3d(cellDim, cellDim, cellDim));
 			systems[curSystemIDX]->fluidBox->radSq = snowGlobRad * snowGlobRad;
 			systems[curSystemIDX]->fluidBox->setIsMesh(true);
 			systems[curSystemIDX]->flags[systems[curSystemIDX]->useMassMat] = false;
@@ -397,7 +398,7 @@ void MyParticleWorld::initScene(int curSystemIDX, double _deltaT, SolverType _so
 			systems[curSystemIDX]->buildGndCollider(.2, 0, 20, -2, 20, std::string("GroundPart10"), Eigen::Vector3d(0, -2, -5));//, Eigen::Vector3d(0, -2, -5));
 			int numCells = 14;				//#of cells on each side of fluid box, including bounds
 			double cellDim = (seaWeedWidth+1) / (.5*numCells);
-			systems[curSystemIDX]->buildFluidBox(numCells, numCells, numCells, .002, 0.1, Eigen::Vector3d(0, 2, -5), Eigen::Vector3d(cellDim, cellDim, cellDim));
+			systems[curSystemIDX]->buildFluidBox(numCells, numCells, numCells,  sgDiff, sgVisc, sgIters, Eigen::Vector3d(0, 2, -5), Eigen::Vector3d(cellDim, cellDim, cellDim));
 			systems[curSystemIDX]->fluidBox->radSq = seaWeedWidth * seaWeedWidth;
             break;}
         case MSPR_MTN_PROJ : {//        mass spring motion - final project for cs7492

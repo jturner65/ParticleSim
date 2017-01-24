@@ -17,12 +17,22 @@ namespace particleSystem{
 	static const double snowGlobStartRad = 1;			//internal snowglobe radius where snowflakes can start
 	static const double snowGlobRad = 10;
 	static const double partSqColDist = .1;				//potential particle collision distance
-	static const double globDeltaT = .01;
+	static const double globDeltaT = .02;
 	static const double epsVal = .000001;
+
+	//snowglobe fluid consts
+	static const double sgVisc = 0.0001;
+	static const double sgDiff = 0.0012;
+	static const double sgIters = 20;
+
+	//seaweed fluid consts
+	static const double swVisc = 0.002;
+	static const double swDiff = 0.0012;
+	static const double swIters = 8;
 
 	static const double dragTTFrcCoef = -.2;			//general damping for tinker toys
 	static const double dragMSFrcCoef = -.3;			//general damping for mass spring
-	static const double dragFluidFrcCoef = -.15;		//general damping for fluids
+	static const double dragFluidFrcCoef = -.25;		//general damping for fluids
 
 	static const double globCnstKp = 1000;				//constraint kp
 
