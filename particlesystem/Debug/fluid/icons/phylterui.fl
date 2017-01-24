@@ -1,0 +1,978 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0103 
+header_name {.h} 
+code_name {.cxx}
+decl {\#include <vector>} {public
+} 
+
+decl {class Phylter_Fl_Gl_Window;} {public
+} 
+
+decl {class AnalyzerWindow;} {public
+} 
+
+decl {\#include "UICallback.h"} {public
+} 
+
+decl {\#include "PhylterGLWindow.h"} {} 
+
+decl {\#include "PhyltersBox.h"} {} 
+
+decl {\#include "PhylterData.h"} {} 
+
+decl {\#include "Model.h"} {} 
+
+decl {\#include "KeyframeData.h"} {} 
+
+decl {\#include "AnalyzerWindow.h"} {} 
+
+decl {\#include <FL/FileName.H>} {public
+} 
+
+decl {\#include "DofFileInfo.h"} {} 
+
+decl {\#include "UtilFuncs.h"} {} 
+
+decl {\#include "FlyingSeg.h"} {} 
+
+class PhylterUI {open
+} {
+  decl {Fl_Cursor mCursor;} {public
+  }
+  decl {dirent** mList;} {public
+  }
+  decl {std::vector<Fl_Value_Slider*> mDofs_sli;} {public
+  }
+  Function {PhylterUI()} {open
+  } {
+    Fl_Window mFLWindow {
+      label Phylters open
+      image {C:/Program Files/fltk-1.1.2/fluid/pixmaps/filter.bmp} deimage {C:/Program Files/fltk-1.1.2/fluid/pixmaps/filter.bmp} xywh {299 53 975 739} selection_color 15 labelcolor 15 resizable visible
+    } {
+      Fl_Group {} {open
+        xywh {0 60 560 475} box DOWN_BOX
+      } {
+        Fl_Box mGLWindow {
+          xywh {0 60 560 475} box DOWN_BOX
+          class Phylter_Fl_Gl_Window
+        }
+      }
+      Fl_Group {} {open
+        xywh {560 305 410 435}
+      } {
+        Fl_Scroll mFuncList_scr {open
+          xywh {770 535 200 200} type BOTH_ALWAYS box DOWN_BOX
+        } {}
+        Fl_Scroll mDofList_scr {open
+          xywh {560 535 210 200} type BOTH_ALWAYS box DOWN_BOX
+        } {}
+      }
+      Fl_Group {} {open
+        xywh {0 605 560 130}
+      } {
+        Fl_Input mCommandLine_inp {
+          callback {CommandLine_cb(o, v);}
+          xywh {5 610 360 30} labelsize 13 textsize 13
+          code0 {o->when(FL_WHEN_ENTER_KEY|FL_WHEN_NOT_CHANGED);}
+        }
+        Fl_Browser mGeneralInfo_out {
+          xywh {0 645 555 90} box DOWN_BOX labelsize 13 textsize 13
+        }
+        Fl_Progress mProgress_pro {
+          xywh {365 610 190 30} color 49 selection_color 15
+        }
+      }
+      Fl_Value_Slider mFrame_sli {
+        label Frame
+        callback {Frame_cb(o, v);}
+        xywh {45 540 335 15} type {Horz Knob} selection_color 15 labelsize 12 labelcolor 15 align 4 step 1 textsize 9 textcolor 15
+      }
+      Fl_Value_Slider mBegin_sli {
+        label Begin
+        callback {Begin_cb(o, v);}
+        xywh {45 565 335 15} type {Horz Knob} selection_color 9 labelsize 12 labelcolor 9 align 4 step 1 textsize 9 textcolor 9
+      }
+      Fl_Value_Slider mEnd_sli {
+        label End
+        callback {End_cb(o, v);}
+        xywh {45 590 335 15} type {Horz Knob} selection_color 9 labelsize 12 labelcolor 9 align 4 step 1 textsize 9 textcolor 9
+      }
+      Fl_Button mLoop_but {
+        label LOOP
+        callback {Loop_cb(o, v);}
+        xywh {385 565 65 35} type Toggle labelfont 1 labelsize 12 labelcolor 15
+      }
+      Fl_Counter mFrameCounter_cou {
+        callback {FrameCounter_cb(o, v);}
+        xywh {385 540 130 25} labelsize 12 labelcolor 15 minimum 0 step 1 textsize 12 textcolor 15
+        code0 {o->lstep(5);}
+      }
+      Fl_Button mPlay_but {
+        label {@>}
+        callback {PlayStop_cb(o, v);}
+        xywh {450 565 65 35} labelfont 1 labelsize 20 labelcolor 15
+      }
+      Fl_Roller mSpeed_rol {
+        callback {Speed_cb(o, v);}
+        tooltip {Adjust playback speed} xywh {520 540 35 60} labelsize 12 labelcolor 15 align 1 minimum 0.01 step 0.01 value 0.07
+      }
+      Fl_Menu_Bar {} {
+        image {terminate.gif} xywh {0 0 975 25}
+      } {
+        submenu {} {
+          label {&Files} open
+          xywh {5 5 200 20} labelsize 13
+        } {
+          menuitem {} {
+            label {Load &Default}
+            callback {DefaultModel_cb(o, v);}
+            xywh {5 5 200 20} shortcut 0x40064 labelsize 13
+          }
+          menuitem {} {
+            label {Load &Model}
+            callback {Model_cb(o, v);}
+            xywh {5 5 200 20} shortcut 0x4006d labelsize 13
+          }
+          menuitem {} {
+            label {Load &Keyframe}
+            callback {Motion_cb(o, v);}
+            xywh {5 5 200 20} shortcut 0x4006b labelsize 13
+          }
+          menuitem {} {
+            label {Load &Constraints}
+            callback {Constr_cb(o, v);}
+            xywh {5 5 200 20} shortcut 0x40063 labelsize 13
+          }
+          menuitem {} {
+            label {Load Sc&ript}
+            callback {Script_cb(o, v);}
+            xywh {5 5 100 20} shortcut 0x40072 labelsize 13 divider
+          }
+          menuitem {} {
+            label {Save Keyframe}
+            callback {SaveMotion_cb(o, v);}
+            xywh {5 5 200 20} shortcut 0x40073 labelsize 13
+          }
+          menuitem {} {
+            label {Save Constraints}
+            callback {SaveConstr_cb(o, v);}
+            xywh {5 5 200 20} labelsize 13 divider
+          }
+          menuitem {} {
+            label {E&xit}
+            callback {Exit_cb(o, v);}
+            xywh {5 5 200 20} shortcut 0x40078 labelsize 13
+          }
+        }
+        submenu {} {
+          label {&Edit} open
+          xywh {5 5 100 20} labelsize 13
+        } {
+          menuitem {} {
+            label {Keyframe Setting}
+            callback {KeyframeSetting_cb(o, v);}
+            xywh {5 5 200 20} labelsize 13
+          }
+          menuitem {} {
+            label {&Set Key}
+            callback {SelectKey_cb(o, v);}
+            xywh {5 5 200 20} shortcut 0xc0073 labelsize 13
+          }
+          menuitem {} {
+            label {&Delete Key}
+            callback {DeleteKey_cb(o, v);}
+            xywh {5 5 200 20} shortcut 0xc0064 labelsize 13 divider
+          }
+          menuitem {} {
+            label {Record Motion}
+            callback {RecordMotion_cb(o, v);}
+            xywh {5 5 200 20} labelsize 13
+          }
+          menuitem {} {
+            label {Still Sh&ot}
+            callback {StillShot_cb(o, v);}
+            xywh {5 5 200 20} shortcut 0x4006f labelsize 13
+          }
+        }
+        submenu {} {
+          label {&View} open
+          xywh {5 5 100 20} labelsize 13
+        } {
+          menuitem mShowModel_ite {
+            label {Show Model}
+            callback {ShowModel_ite_cb(o, v);}
+            xywh {5 5 200 20} type Toggle labelsize 13
+          }
+          menuitem mShowConstr_ite {
+            label {Show Constraints}
+            callback {ShowConstr_ite_cb(o, v);}
+            xywh {5 5 200 20} type Toggle labelsize 13
+          }
+          menuitem mShowMarker_ite {
+            label {Show Markers}
+            callback {ShowMarker_ite_cb(o, v);}
+            xywh {5 5 200 20} type Toggle labelsize 13 divider
+          }
+          menuitem {} {
+            label Sliders
+            callback {ShowSliders_cb(o, v);}
+            xywh {5 5 200 20} labelsize 13
+          }
+          menuitem {} {
+            label {&Graphs Reset}
+            xywh {5 5 200 20} shortcut 0x40067 labelsize 13
+          }
+        }
+        submenu {} {
+          label {&Phylters} open
+          xywh {5 5 100 20} labelsize 13
+        } {
+          menuitem {} {
+            label {&Interactive}
+            callback {Interact_cb(o, v);}
+            xywh {5 5 200 20} type Toggle shortcut 0x40069 labelsize 13 divider
+          }
+          menuitem {} {
+            label {Solve Spacetime}
+            callback {Spacetime_cb(o, v);}
+            xywh {5 5 200 20} labelsize 13
+          }
+          menuitem {} {
+            label {&Terminate}
+            callback {Terminate_cb(o, v);}
+            xywh {5 5 200 20} shortcut 0x40074 labelsize 13
+          }
+          menuitem {} {
+            label {Clear Constraints}
+            xywh {0 0 100 20} labelsize 13 divider
+          }
+          menuitem {} {
+            label Preprocess
+            callback {Preprocess_cb(o, v);}
+            xywh {5 5 200 20} labelsize 13
+          }
+          menuitem {} {
+            label {Estimate Alpha}
+            xywh {5 5 200 20} labelsize 13
+          }
+        }
+        submenu {} {
+          label {&Controls} open
+          xywh {5 5 100 20} labelsize 13
+        } {
+          menuitem {} {
+            label {&Play/Stop}
+            xywh {5 5 200 20} shortcut 0x40070 labelsize 13
+          }
+          menuitem {} {
+            label Loop
+            xywh {5 5 200 20} labelsize 13
+          }
+          menuitem {} {
+            label {&Forward}
+            xywh {5 5 200 20} shortcut 0x40066 labelsize 13
+          }
+          menuitem {} {
+            label {&Backward}
+            xywh {5 5 200 20} shortcut 0x40062 labelsize 13
+          }
+        }
+        submenu {} {
+          label {&Help} open
+          xywh {5 5 100 20} labelsize 13
+        } {
+          menuitem mContent_ite {
+            label Contents
+            callback {Content_cb(o, v);}
+            xywh {5 5 200 20} labelsize 13
+          }
+          menuitem {} {
+            label About
+            callback {About_cb(o, v);}
+            xywh {5 5 200 20} labelsize 13
+          }
+        }
+      }
+      Fl_Group {} {
+        xywh {0 25 975 35}
+        code0 {o->resizable(NULL);}
+      } {
+        Fl_Button mDefault_but {
+          callback {DefaultModel_cb(o, v);}
+          tooltip {Load default model} image {default.gif} xywh {0 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mModel_but {
+          callback {Model_cb(o, v);}
+          tooltip {Load model} image {model.gif} xywh {35 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mMotion_but {
+          callback {Motion_cb(o, v);}
+          tooltip {Load keyframe} image {keyframe.gif} xywh {70 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mConstr_but {
+          callback {Constr_cb(o, v);}
+          tooltip {Load constraints} image {constr.gif} xywh {105 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mSaveMotion_but {
+          callback {SaveMotion_cb(o, v);}
+          tooltip {Save keyframe} image {savekeyframe.gif} xywh {140 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mSaveConstr_but {
+          callback {SaveConstr_cb(o, v);}
+          tooltip {Save constraints} image {saveconstr.gif} xywh {175 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mSelectKey_but {
+          callback {SelectKey_cb(o, v);}
+          tooltip {Select key} image {key.gif} xywh {210 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mDeleteKey_but {
+          callback {DeleteKey_cb(o, v);}
+          tooltip {Delete key} image {trash.gif} xywh {245 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mRecordMotion_but {
+          callback {RecordMotion_cb(o, v);}
+          tooltip {Record motion} image {record.gif} xywh {280 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mStillShot_but {
+          callback {StillShot_cb(o, v);}
+          tooltip {Still shot} image {still.gif} xywh {315 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mShowModel_but {
+          callback {ShowModel_cb(o, v);}
+          tooltip {Show model} image {showmodel.gif} xywh {350 25 35 35} type Toggle box THIN_UP_BOX
+        }
+        Fl_Button mShowConstr_but {
+          callback {ShowConstr_cb(o, v);}
+          tooltip {Show Constraints} image {showconstr.gif} xywh {385 25 35 35} type Toggle box THIN_UP_BOX
+        }
+        Fl_Button mShowMarker_but {
+          callback {ShowMarker_cb(o, v);}
+          tooltip {Show Markers} image {showmarker.gif} xywh {420 25 35 35} type Toggle box THIN_UP_BOX
+        }
+        Fl_Button mInteract_but {
+          callback {Interact_cb(o, v);}
+          tooltip {Interactive mode} image {interactive.gif} xywh {455 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mSpacetime_but {
+          callback {Spacetime_cb(o, v);}
+          tooltip {Solve spacetime} image {spacetime.gif} xywh {490 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mTerminate_but {
+          callback {Terminate_cb(o, v);}
+          tooltip {Terminate solver} image {terminate.gif} xywh {525 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Button mAbout_but {
+          callback {About_cb(o, v);}
+          tooltip {Estimate alpha} image {about.gif} xywh {560 25 35 35} box THIN_UP_BOX
+        }
+        Fl_Menu_Button mPhylterList {
+          label {Phylter List     }
+          tooltip {Select phylters for spacetime} xywh {595 25 185 35} box THIN_UP_BOX labelfont 1 labelcolor 15
+        } {
+          menuitem mPhConstr_item {
+            label Constraints
+            xywh {0 0 200 20} type Toggle labelsize 13 labelcolor 15
+          }
+          menuitem mPhPose_item {
+            label Poses
+            xywh {0 0 200 20} type Toggle value 1 labelsize 13 labelcolor 15
+          }
+          menuitem mPhLin_item {
+            label {Linear Momentum}
+            xywh {10 10 200 20} type Toggle value 1 labelsize 13 labelcolor 15
+          }
+          menuitem mPhAng_item {
+            label {Angular Momentum}
+            xywh {20 20 200 20} type Toggle value 1 labelsize 13 labelcolor 15
+          }
+          menuitem mPhSmooth_item {
+            label Smoothness
+            xywh {30 30 200 20} type Toggle labelsize 13 labelcolor 15
+          }
+          menuitem mPhMuscle_item {
+            label {Muscle Force}
+            xywh {40 40 200 20} type Toggle labelsize 13 labelcolor 15
+          }
+        }
+        Fl_Menu_Button mFileList {
+          label {File List     }
+          callback {FileList_cb(o, v);}
+          xywh {780 25 195 35} box THIN_UP_BOX labelfont 1 labelcolor 15 textsize 13 textcolor 15
+        } {}
+      }
+      Fl_Group {} {
+        xywh {560 60 415 245} box DOWN_BOX
+      } {
+        Fl_Box mGraphWindow {
+          xywh {562 62 413 243}
+          class AnalyzerWindow
+        }
+      }
+    }
+    Fl_Window mAboutWindow {
+      label {About Phylters}
+      xywh {455 482 282 225} hide
+    } {
+      Fl_Box {} {
+        image {C:/Program Files/fltk-1.1.2/fluid/pixmaps/mot2 copy.gif} xywh {15 15 95 100}
+      }
+      Fl_Output mAbout_text_out {
+        xywh {125 20 140 155} type Multiline box THIN_DOWN_BOX color 50 labelsize 13 labelcolor 15 textcolor 15
+      }
+      Fl_Return_Button mReturn_abt_but {
+        label OK
+        callback {Return_abt_but(o, v);}
+        xywh {200 190 65 25} box THIN_UP_BOX labelcolor 15
+      }
+    }
+    Fl_Window mContentWindow {
+      label Help
+      xywh {220 242 741 597} hide resizable
+    } {
+      Fl_Help_View mHelpView {
+        xywh {5 5 730 550}
+      }
+      Fl_Return_Button {} {
+        label OK
+        callback {Return_hel_cb(o, v);}
+        xywh {675 565 60 25} box THIN_UP_BOX labelcolor 15 resizable
+      }
+    }
+  }
+  Function {Show()} {} {
+    code {mFLWindow->show();
+mGLWindow->show();
+if(PhyltersBox::mData->mKeyframeData)
+	mGraphWindow->show();} {}
+  }
+  Function {CreateDofSliderWindow()} {open return_type void
+  } {
+    Fl_Window mDofSliderWindow {
+      label {Joint Angles}
+      xywh {202 94 383 612} hide resizable
+    } {
+      Fl_Scroll {} {
+        xywh {0 0 380 610} box THIN_DOWN_BOX labelsize 13
+        code0 {InitSliders();}
+      } {}
+    }
+  }
+  Function {CreateKeyframeSettingWindow()} {open
+  } {
+    Fl_Window mKeyframeSetWindow {
+      label {Keyframe Setting} open
+      xywh {408 241 277 166} visible
+    } {
+      Fl_Input mFrames_inp {
+        label {Frames:}
+        tooltip {Input the number of frames of the animation} xywh {70 10 45 25} type Int box THIN_DOWN_BOX labelcolor 15 textcolor 15
+      }
+      Fl_Input mTime_inp {
+        label {Seconds:}
+        xywh {205 10 45 25} type Float box THIN_DOWN_BOX labelcolor 15 textcolor 15
+      }
+      Fl_Group {} {open
+        xywh {10 45 145 50}
+      } {
+        Fl_Light_Button mSample_but {
+          label Samples
+          callback {Sample_but_cb(o, v);}
+          xywh {10 45 70 25} type Radio box THIN_UP_BOX value 1 selection_color 9 labelsize 13 labelcolor 15
+        }
+        Fl_Light_Button mBSpline_but {
+          label BSplines
+          callback {BSpline_but_cb(o, v);}
+          xywh {80 45 70 25} type Radio box THIN_UP_BOX selection_color 9 labelsize 13 labelcolor 15
+        }
+        Fl_Light_Button mSplitSpline_but {
+          label {Split Spline}
+          callback {SplitSpline_but_cb(o, v);}
+          xywh {10 70 90 25} type Radio box THIN_UP_BOX selection_color 9 labelcolor 15
+        }
+      }
+      Fl_Input mContPoint_inp {
+        label {Points:}
+        xywh {205 55 45 25} type Int box THIN_DOWN_BOX labelcolor 15 textcolor 15
+        code0 {mContPoint_inp->value("15");}
+      }
+      Fl_Return_Button mReturn_key_but {
+        label OK
+        callback {Return_key_but_cb(o, v);}
+        xywh {100 130 75 25} box THIN_UP_BOX labelcolor 15
+      }
+      Fl_Button mCancel_key_but {
+        label Cancel
+        callback {Cancel_key_but_cb(o, v);}
+        xywh {180 130 70 25} box THIN_UP_BOX labelcolor 15
+      }
+      Fl_Light_Button mSubdivide_but {
+        label Subdivide
+        callback {Subdivide_cb(o, v);}
+        xywh {10 95 70 25} box THIN_UP_BOX selection_color 10 labelsize 13 labelcolor 15 deactivate
+      }
+    }
+  }
+  Function {CreateDetectorWindow()} {
+    callback {Script_cb(o, v);} open
+  } {
+    Fl_Window mDetectionWindow {
+      label {Constraint Detection} open
+      xywh {475 332 318 186} visible
+    } {
+      Fl_Value_Input mMinFrame_det_val {
+        label {Min frames:}
+        callback {MinFrame_det_cb(o, v);}
+        tooltip {Minimal frames for each constraint} xywh {125 10 55 20} labelcolor 15 minimum 3 maximum 10 step 1 value 5 textcolor 15
+      }
+      Fl_Value_Input mEigen_det_val {
+        label {Eigen range:}
+        callback {Eigen_det_cb(o, v);}
+        tooltip {Not used right now.} xywh {125 110 55 20} labelcolor 15 maximum 0.1 step 0.001 value 0.03 textcolor 15
+      }
+      Fl_Value_Input mDetectRange_det_val {
+        label {Detection range:}
+        callback {DetectRange_det_cb(o, v);}
+        tooltip {Allowable error when detecting primative intersections.} xywh {125 70 55 20} labelcolor 15 maximum 2 step 0.001 value 0.1 textcolor 15
+      }
+      Fl_Value_Input mSlopeRange_det_val {
+        label {Slope Range:}
+        callback {SlopeRange_det_cb(o, v);}
+        tooltip {Not used right now.} xywh {125 90 55 20} labelcolor 15 maximum 0.1 step 0.0001 value 0.001 textcolor 15
+      }
+      Fl_Value_Input mMinFlight_det_val {
+        label {Min flight phase::}
+        callback {MinFlight_det_cb(o, v);}
+        tooltip {Minimal frame required for flight phase} xywh {125 30 55 20} labelcolor 15 minimum 3 maximum 30 step 1 value 8 textcolor 15
+      }
+      Fl_Check_Button mPosition_det_che {
+        label Position
+        callback {Position_det_cb(o, v);}
+        tooltip {Detect positional constraints} xywh {200 10 100 25} down_box DOWN_BOX value 1 selection_color 15 labelcolor 15
+      }
+      Fl_Check_Button mLineSlide_det_che {
+        label {Line sliding}
+        callback {LineSlide_det_cb(o, v);}
+        tooltip {Detect line sliding constraints} xywh {200 35 100 25} down_box DOWN_BOX selection_color 15 labelcolor 15
+      }
+      Fl_Check_Button mPlaneSlide_det_che {
+        label {Plane sliding}
+        callback {PlaneSlide_det_cb(o, v);}
+        tooltip {Detect plane sliding constraints} xywh {200 60 100 25} down_box DOWN_BOX selection_color 15 labelcolor 15
+      }
+      Fl_Return_Button mReturn_det_but {
+        label OK
+        xywh {155 145 70 25} box THIN_UP_BOX labelcolor 15
+      }
+      Fl_Button mCancel_det_but {
+        label Cancel
+        xywh {230 145 70 25} box THIN_UP_BOX labelcolor 15
+      }
+      Fl_Check_Button mToe_det_che {
+        label {Toe position}
+        callback {Toe_det_cb(o, v);}
+        tooltip {Move constraints to toes when takeoff} xywh {200 85 100 25} down_box DOWN_BOX selection_color 15 labelcolor 15
+      }
+      Fl_Light_Button mSoftConstr_det_but {
+        label Soft
+        tooltip {Set to soft constraints} xywh {15 145 45 25} box THIN_UP_BOX selection_color 9 labelcolor 15
+      }
+      Fl_Value_Input mMaxTranslation_det_val {
+        label {Max Translation:}
+        callback {MaxTranslation_det_cb(o, v);}
+        tooltip {Maximum translation allowed when detecting a plane constraint.} xywh {125 50 55 20} maximum 0.01 step 0.0001 value 0.005
+      }
+    }
+  }
+  Function {CreateReductionWindow()} {open
+  } {
+    Fl_Window mReductionWindow {
+      label {Frame Reduction} open
+      xywh {238 175 645 287} visible
+    } {
+      Fl_Group {} {
+        label {DOF Type} open
+        xywh {10 180 210 100} box ENGRAVED_BOX labelcolor 15 align 5
+      } {
+        Fl_Light_Button mSample_but {
+          label Samples
+          callback {Sample_but_cb(o, v);}
+          xywh {25 190 90 25} type Radio box THIN_UP_BOX value 1 selection_color 9 labelsize 13 labelcolor 15
+        }
+        Fl_Light_Button mBSpline_but {
+          label BSplines
+          callback {BSpline_but_cb(o, v);}
+          xywh {25 215 90 25} type Radio box THIN_UP_BOX selection_color 9 labelsize 13 labelcolor 15
+        }
+        Fl_Light_Button mSplitSpline_but {
+          label {Split Spline}
+          callback {SplitSpline_but_cb(o, v);}
+          xywh {25 240 90 30} type Radio box THIN_UP_BOX selection_color 9 labelcolor 15
+        }
+      }
+      Fl_Input mContPoint_inp {
+        label {Points:}
+        xywh {135 240 45 25} type Int box THIN_DOWN_BOX labelcolor 15 align 5 textcolor 15
+        code0 {mContPoint_inp->value("15");}
+      }
+      Fl_Group {} {
+        label {Stage Reduction} open
+        xywh {10 40 210 120} box ENGRAVED_BOX labelcolor 15 align 5
+      } {
+        Fl_Return_Button mReduceStage_red_but {
+          label {Reduce }
+          xywh {65 120 85 30} labelcolor 15 align 16
+        }
+      }
+      Fl_Scroll mFpsScrollPane {
+        label {Frame Reduction} selected
+        xywh {225 40 410 195} type VERTICAL_ALWAYS box DOWN_BOX labelcolor 15 align 5
+      } {}
+      Fl_Value_Slider {} {
+        label {Flight(%):   }
+        xywh {90 45 125 30} type {Horz Knob} labelcolor 15 align 4 value 0.1
+      }
+      Fl_Value_Slider {} {
+        label {Ground(%):}
+        xywh {90 80 125 30} type {Horz Knob} labelcolor 15 align 4 value 0.2
+      }
+      Fl_Return_Button mReturn_red_but {
+        label OK
+        xywh {370 250 70 25} box THIN_UP_BOX labelcolor 15
+      }
+      Fl_Button mCancel_red_but {
+        label Cancel
+        xywh {445 250 70 25} box THIN_UP_BOX labelcolor 15
+      }
+    }
+  }
+  Function {CreatePostureWindow()} {open
+  } {
+    Fl_Window mPostureWindow {
+      label {Poseture Editing}
+      xywh {529 285 338 176} visible
+    } {
+      Fl_Group {} {
+        label Constraints open
+        xywh {10 25 115 95} box ENGRAVED_BOX labelcolor 15 align 5
+      } {
+        Fl_Check_Button {} {
+          label {Upper COM}
+          tooltip {COM for upper body} xywh {20 35 100 25} down_box DOWN_BOX value 1 selection_color 15 labelcolor 15
+        }
+        Fl_Check_Button {} {
+          label {Lower COM}
+          tooltip {COM for lower body} xywh {20 60 100 25} down_box DOWN_BOX value 1 selection_color 15 labelcolor 15
+        }
+        Fl_Check_Button {} {
+          label {Arm COM}
+          tooltip {COM for of two arms} xywh {20 85 100 20} down_box DOWN_BOX selection_color 15 labelcolor 15
+        }
+      }
+      Fl_Group {} {
+        label {Objective function} open
+        xywh {135 25 195 95} box ENGRAVED_BOX labelcolor 15 align 5
+      } {
+        Fl_Value_Slider {} {
+          label {Min mass}
+          tooltip {Weight for minimizing mass displacement} xywh {145 50 175 15} type Horizontal labelcolor 15 align 1 textcolor 15
+        }
+        Fl_Value_Slider {} {
+          label {Joint angle}
+          tooltip {Weight for minimizing joint difference} xywh {145 85 175 15} type Horizontal labelcolor 15 align 1 textcolor 15
+        }
+      }
+      Fl_Return_Button mReturn_pos_but {
+        label OK
+        xywh {175 140 75 25} box THIN_UP_BOX labelcolor 15
+      }
+      Fl_Button mCancel_pos_but {
+        label Cancel
+        xywh {255 140 75 25} box THIN_UP_BOX labelcolor 15
+      }
+      Fl_Light_Button mSoftConstr_pos_but {
+        label Soft
+        tooltip {Set to soft constraints} xywh {10 140 45 25} box THIN_UP_BOX value 1 selection_color 9 labelcolor 15
+      }
+    }
+  }
+  Function {CreateLinMomentWindow()} {} {
+    Fl_Window mLinWindow {
+      label {Linear Momentum} open
+      xywh {643 390 247 177} hide
+    } {
+      Fl_Slider mGamma_ver_scr {
+        label {First vertical}
+        callback {Gamma_ver_cb(o, v);}
+        tooltip {Vertical position of the first control point} xywh {145 40 15 75} labelsize 13 labelcolor 15 align 129 minimum -10 maximum 10
+      }
+      Fl_Slider mGamma_hor_scr {
+        label {First horizotal:}
+        callback {Gamma_hor_cb(o, v);}
+        tooltip {Horizontal position of the first control point} xywh {20 40 85 15} type Horizontal labelsize 13 labelcolor 15 align 5 value 0.4
+      }
+      Fl_Slider mLambda_hor_scr {
+        label {Second horizotal:}
+        callback {Lambda_hor_cb(o, v);}
+        tooltip {Horizontal position of the second control point} xywh {20 75 85 15} type Horizontal labelsize 13 labelcolor 15 align 5 value 0.85
+      }
+      Fl_Slider mLambda_ver_scr {
+        label {Second vertical}
+        callback {Lambda_ver_cb(o, v);}
+        tooltip {Vertical position of the second control point} xywh {190 40 15 75} labelsize 13 labelcolor 15 align 129 minimum -10 maximum 10
+      }
+      Fl_Return_Button mReturn_lin_but {
+        label OK
+        xywh {95 140 70 25} box THIN_UP_BOX labelcolor 15
+      }
+      Fl_Button mCancel_lin_but {
+        label Cancel
+        xywh {170 140 70 25} box THIN_UP_BOX labelcolor 15
+      }
+      Fl_Light_Button mSoftConstr_lin_but {
+        label Soft
+        tooltip {Set to soft constraints} xywh {20 140 45 25} box THIN_UP_BOX selection_color 9 labelcolor 15
+      }
+    }
+  }
+  Function {CreateAngMomentWindow()} {} {
+    Fl_Window mAngWindow {
+      label {Angular Momentum} open
+      xywh {695 458 247 177} hide
+    } {
+      Fl_Slider mAlpha_ver_scr {
+        label {First vertical}
+        callback {Alpha_ver_cb(o, v);}
+        tooltip {Vertical position of the first control point} xywh {145 40 15 75} labelsize 13 labelcolor 15 align 129 minimum -1
+      }
+      Fl_Slider mAlpha_hor_scr {
+        label {First horizotal:}
+        callback {Alpha_hor_cb(o, v);}
+        tooltip {Horizontal position of the first control point} xywh {20 40 85 15} type Horizontal labelsize 13 labelcolor 15 align 5 value 0.4
+      }
+      Fl_Slider mBeta_hor_scr {
+        label {Second horizotal:}
+        callback {Beta_hor_cb(o, v);}
+        tooltip {Horizontal position of the second control point} xywh {20 75 85 15} type Horizontal labelsize 13 labelcolor 15 align 5 value 0.85
+      }
+      Fl_Slider mBeta_ver_scr {
+        label {Second vertical}
+        callback {Beta_ver_cb(o, v);}
+        tooltip {Vertical position of the second control point} xywh {190 40 15 75} labelsize 13 labelcolor 15 align 129 minimum -1
+      }
+      Fl_Return_Button mReturn_ang_but {
+        label OK
+        xywh {95 140 70 25} box THIN_UP_BOX labelcolor 15
+      }
+      Fl_Button mCancel_ang_but {
+        label Cancel
+        xywh {170 140 70 25} box THIN_UP_BOX labelcolor 15
+      }
+      Fl_Light_Button mSoftConstr_ang_but {
+        label Soft
+        tooltip {Set to soft constraints} xywh {20 140 45 25} box THIN_UP_BOX selection_color 9 labelcolor 15
+      }
+    }
+  }
+  Function {InitKeyframeSetting()} {} {
+    code {if(PhyltersBox::mData->mKeyframeData){
+	char buffer[20];
+	int frame = PhyltersBox::mData->mKeyframeData->GetFrameCount();
+	_itoa(frame, buffer, 10);
+	mFrames_inp->value(buffer);
+	double time = frame / PhyltersBox::mData->mFPS;
+	_gcvt(time, 3, buffer);
+	mTime_inp->value(buffer);
+}} {}
+  }
+  Function {InitSliders()} {} {
+    code {int nDof = PhyltersBox::mData->mModel->GetDofCount();
+int yPos = 10;
+for(int i = 0; i < nDof; i++){
+	Dof *currDof = PhyltersBox::mData->mModel->GetDofs().GetDof(i);
+	Fl_Value_Slider *o = new Fl_Value_Slider(110, yPos, 250, 15, currDof->GetName());
+	o->type(1);
+	o->selection_color(15);
+	o->labelsize(13);
+	o->labelcolor(15);
+	o->maximum(PhyltersBox::mData->mModel->GetDofs().GetDof(i)->GetMax());
+	o->minimum(PhyltersBox::mData->mModel->GetDofs().GetDof(i)->GetMin());
+	o->align(FL_ALIGN_LEFT);
+	o->callback((Fl_Callback*)DofSliders_cb, (void*)(i));
+	mDofs_sli.push_back(o);
+	yPos += 20;
+}
+
+int height = 610;
+if(yPos + 10 < height)
+	height = yPos + 10;
+mDofSliderWindow->resize(100, 100, 380, height);} {}
+  }
+  Function {InitControlPanel()} {} {
+    code {mFrame_sli->range(0, PhyltersBox::mData->mKeyframeData->GetFrameCount() - 1);
+mFrame_sli->value(0);
+mBegin_sli->range(0, PhyltersBox::mData->mKeyframeData->GetFrameCount() - 1);
+mBegin_sli->value(0);
+mEnd_sli->range(0, PhyltersBox::mData->mKeyframeData->GetFrameCount() - 1);
+mEnd_sli->value(PhyltersBox::mData->mKeyframeData->GetFrameCount() - 1);
+mFrameCounter_cou->value(0);
+mFrameCounter_cou->maximum(PhyltersBox::mData->mKeyframeData->GetFrameCount() - 1);
+mPlay_but->label("@>");
+mLoop_but->value(0);} {}
+  }
+  Function {InitFileList()} {} {
+    code {char *name;
+char *root;
+int colorArray[] = {4, 171, 1, 192, 90};
+
+name = strrchr(PhyltersBox::mData->mKeyframeData->mFilename, '/');
+if(!name){
+	root = new char[3];
+	strcpy(root, "./");
+	root[2] = '\\0';
+	name = PhyltersBox::mData->mKeyframeData->mFilename - 1;
+}else{
+	int firstSlashPos = name - PhyltersBox::mData->mKeyframeData->mFilename + 1;
+		
+	root = new char[firstSlashPos + 1];
+	strncpy(root, PhyltersBox::mData->mKeyframeData->mFilename, firstSlashPos);
+	root[firstSlashPos] = '\\0';
+}
+
+fl_filename_list(root, &mList);
+int i = 2;
+
+while(mList[i]){
+	mFileList->add(mList[i]->d_name, 0, 0, 0, 2);
+	char *fullName = new char[strlen(root) + strlen(mList[i]->d_name) + 1];
+	strcpy(fullName, root);
+	strcat(fullName, mList[i]->d_name);
+			
+	if(strcmp(mList[i]->d_name, name + 1) == 0){
+		mFileList->mode(i - 2, 6);
+		DofFileInfo *openFile = new DofFileInfo(fullName);
+		openFile->mIndexOnList = i - 2;
+		mGraphWindow->mOpenedDofFiles.push_back(openFile);
+		mGraphWindow->mDefaultFile = mGraphWindow->mOpenedDofFiles.size() - 1;
+	}
+	i++;
+	delete [] fullName;
+}
+delete [] root;} {}
+  }
+  Function {InitFuncList()} {} {
+    code {int yPos = 0;
+for(int i = 0; i < TOTAL_FUNCS; i++){
+	Fl_Check_Button* o = new Fl_Check_Button(730, 305 + yPos, 125, 12, FunctionName[i]);
+	o->selection_color(15);
+	o->labelcolor(15);
+	o->labelsize(12);
+	o->callback((Fl_Callback*)FuncList_but_cb, (void*)(i));
+	yPos += 15;
+	mFuncList_scr->add(o);
+}} {}
+  }
+  Function {InitDofList()} {} {
+    code {int nDof = PhyltersBox::mData->mModel->GetDofCount();
+int yPos = 0;
+for(int i = 0; i < nDof; i++){
+	Fl_Check_Button* o = new Fl_Check_Button(570, 305 + yPos, 125, 12, PhyltersBox::mData->mModel->GetDofs().GetDof(i)->GetName());
+	o->selection_color(15);
+	o->labelcolor(15);
+	o->labelsize(12);
+	o->callback((Fl_Callback*)DofList_but_cb, (void*)(i));
+	yPos += 15;
+	mDofList_scr->add(o);
+}} {}
+  }
+  Function {DeleteSliderWindow()} {} {
+    code {if(mDofSliderWindow->shown())
+	mDofSliderWindow->hide();
+int nDof = PhyltersBox::mData->mModel->GetDofCount();
+for(int i = nDof - 1; i >= 0; i--)
+	delete mDofs_sli[i];
+mDofs_sli.clear();
+
+//delete mDofSliderWindow;} {}
+  }
+  Function {DeleteKeyframeSettingWindow()} {} {
+    code {if(mKeyframeSetWindow->shown())
+	mKeyframeSetWindow->hide();
+
+delete mFrames_inp;
+delete mTime_inp;
+delete mSample_but;
+delete mBSpline_but;
+delete mContPoint_inp;
+delete mReturn_key_but;
+delete mCancel_key_but;} {}
+  }
+  Function {DeleteFileList()} {} {
+    code {mFileList->clear();} {}
+  }
+  Function {DeleteFuncList()} {} {
+    code {int size = mFuncList_scr->children();
+
+for(int i = size - 3; i >= 0; i--){
+	Fl_Widget *item = mFuncList_scr->child(i);
+	mFuncList_scr->remove(item);
+}} {}
+  }
+  Function {DeleteDofList()} {} {
+    code {int size = mDofList_scr->children();
+
+for(int i = size - 3; i >= 0; i--){
+	Fl_Widget *item = mDofList_scr->child(i);
+	mDofList_scr->remove(item);
+}} {}
+  }
+  decl {std::vector<Fl_Counter*> mFPS_count;} {public
+  }
+  Function {InitFpsSliders()} {} {
+    code {std::vector<GeneralSeg*> & genSegs = PhyltersBox::mData->mGenSegments;
+mFpsScrollPane->hide();
+
+//remove old ones
+for(int i = 0;i<mFPS_count.size();i++){
+	mFpsScrollPane->remove(*mFPS_count[i]);
+	delete mFPS_count[i];
+}
+mFPS_count.clear();
+
+unsigned int color;
+int counterHeight  = 20;
+mFpsScrollPane->begin();
+int packWidth     = 150;
+int x = mFpsScrollPane->x() + 20;
+int y = mFpsScrollPane->y()+ 20;
+for(int i = 0;i< genSegs.size();i++){
+	genSegs[i]->name = new char[25];
+	if(i%2){
+		color = 9;
+		sprintf(genSegs[i]->name,"Flight Stage %d",(i-1)/2);
+	}else{
+		color = 15;
+		sprintf(genSegs[i]->name,"Ground Stage %d",i/2);
+	}
+	Fl_Counter *counter = new Fl_Counter(x, y, packWidth, counterHeight,genSegs[i]->name);
+        counter->minimum(3);
+        counter->step(1);
+		counter->lstep(5);
+		counter->labelcolor(color);
+		counter->textcolor(color);
+        counter->value(genSegs[i]->endFrame - genSegs[i]->startFrame);
+		counter->callback((Fl_Callback*)FpsCounters_cb, (void*)(i));
+		counter->align(FL_ALIGN_TOP);
+
+	counter->show();
+	mFPS_count.push_back(counter);
+	y += counterHeight+ 20;
+
+}
+mFpsScrollPane->end();
+mFpsScrollPane->show();
+mFpsScrollPane->redraw();
+mGraphWindow->redraw();} {
+      callback {Frame_cb(o, v);}
+    }
+  }
+} 

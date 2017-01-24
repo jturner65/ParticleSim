@@ -1,0 +1,178 @@
+# data file for the FLTK User Interface Designer (FLUID)
+version 2.1000 
+images_dir header_name 
+header_name {.h} 
+code_name {.cpp} 
+gridx 5 
+gridy 5 
+snap 3
+class ControlPanel {open
+} {
+  Function {setRange(int _maxFrame)} {open return_type void
+  } {
+    code {mFrame_sli->range(0, _maxFrame);
+mBegin_sli->range(0, _maxFrame);
+mBegin_sli->value(0);
+mEnd_sli->range(0, _maxFrame);
+mEnd_sli->value(_maxFrame);
+//mFrameCounter_inp->maximum(_maxFrame);
+if(mFrame_sli->value()>_maxFrame){
+	mFrame_sli->value(_maxFrame);
+	//mFrameCounter_cou->value(_maxFrame);
+}
+mControlWindow->redraw();} {}
+  }
+  Function {ControlPanel()} {open
+  } {
+    {fltk::Window} mControlWindow {open
+      xywh {706 582 640 105} type Double set_xy resizable noborder visible
+    } {
+      {fltk::ValueSlider} mFrame_sli {
+        label Frame
+        callback {int current = (int)o->value();
+if( current > getEnd() )
+	current = getEnd();
+if( current < getBegin() )
+	current = getBegin();
+o->value( current );
+o->selection_color(15);
+o->textcolor(15);
+o->labelcolor(15);} selected
+        xywh {47 7 455 18} type TICK_ABOVE align 4 when CHANGED labelfont 1 labelsize 13 maximum 0 step 1
+      }
+      {fltk::ValueSlider} mBegin_sli {
+        label Begin
+        callback {int val = (int)o->value();
+if( val > getEnd() ){
+	val = getEnd();
+}
+else if ( val > getCurrentFrame() ){
+	mFrame_sli->value(val);
+	mFrame_sli->selection_color(15);
+	mFrame_sli->textcolor(15);
+	mFrame_sli->labelcolor(15);
+}
+o->value(val);}
+        xywh {47 35 455 18} align 4 when CHANGED box PLASTIC_UP_BOX buttonbox PLASTIC_UP_BOX labelfont 1 color 0xff6c5b00 labelsize 13 textsize 9 maximum 0 step 1
+      }
+      {fltk::ValueSlider} mEnd_sli {
+        label End
+        callback {int val = (int)o->value();
+if( val < getBegin() ){
+	val = getBegin();
+}
+else if( val < getCurrentFrame() ){
+	mFrame_sli->value(val);		
+	mFrame_sli->selection_color(15);
+	mFrame_sli->textcolor(15);
+	mFrame_sli->labelcolor(15);
+}
+o->value(val);}
+        xywh {47 55 455 18} align 4 when CHANGED box PLASTIC_UP_BOX buttonbox PLASTIC_UP_BOX labelfont 1 color 0x79ff8800 labelsize 13 textsize 9 maximum 0 step 1
+      }
+      {fltk::Button} mLoop_but {
+        label LOOP
+        tooltip {Lopp the playback}
+        xywh {509 61 55 40} type TOGGLE box PLASTIC_UP_BOX buttonbox PLASTIC_UP_BOX labelfont 1 color 0xece9d800 selection_color 0x8099ff00 selection_textcolor 56 highlight_color 0xece9d800
+      }
+      {fltk::Button} mPlay_but {
+        label {@>}
+        callback {mPlaying = !mPlaying;
+if(mPlaying)
+	mPlay_but->label("@||");
+else
+	mPlay_but->label("@>");}
+        tooltip {Play/Pause}
+        xywh {570 61 50 40} type TOGGLE box PLASTIC_UP_BOX buttonbox PLASTIC_UP_BOX labelfont 1 color 0xece9d800 selection_color 0xece9d800 selection_textcolor 56 labelsize 20
+      }
+      {fltk::ValueInput} mFrameStep_inp {
+        label Step
+        xywh {591 31 30 28} when CHANGED box PLASTIC_UP_BOX buttonbox PLASTIC_UP_BOX minimum 1 maximum 10 step 1 value 1
+        extra_code {o->value(1);}
+      }
+      {fltk::Button} mForward_but {
+        label {@>}
+        callback {advanceFrame((int)mFrameStep_inp->value());}
+        xywh {590 9 30 16} box PLASTIC_UP_BOX buttonbox PLASTIC_UP_BOX
+      }
+      {fltk::Button} mBackward_but {
+        label {@<}
+        callback {decrementFrame((int)mFrameStep_inp->value());}
+        xywh {558 9 31 16} box PLASTIC_UP_BOX buttonbox PLASTIC_UP_BOX
+      }
+      {fltk::ValueSlider} mSpeed_rol {
+        label FPS
+        tooltip {Adjust playback speed}
+        xywh {47 82 455 18} align 4 when CHANGED box PLASTIC_UP_BOX buttonbox PLASTIC_UP_BOX labelfont 1 color 0x8099ff00 labelsize 13 minimum 5 maximum 150 step 1 value 120
+      }
+    }
+    code {mPlaying=false;} {}
+  }
+  Function {advanceFrame(int _step=1)} {return_type void
+  } {
+    code {int val = (int)mFrame_sli->value()+ _step;// (int)mFrameStep_inp->value();
+if( val >getEnd() ){
+	val = getBegin();
+	if( !isLooping() ){
+		mPlaying = false;
+		mPlay_but->label("@>");
+	}
+}
+mFrame_sli->value( val );
+//mFrameCounter_inp->value( val );} {}
+  }
+  Function {decrementFrame(int _step=1)} {return_type void
+  } {
+    code {int val = (int)mFrame_sli->value() - _step;//(int)mFrameStep_inp->value();
+if( val < getBegin() ){
+	val = getBegin();
+	if( !isLooping() ){
+		mPlaying = false;
+		mPlay_but->label("@>");
+	}
+}
+mFrame_sli->value( val );
+//mFrameCounter_inp->value( val );} {}
+  }
+  Function {getCurrentFrame()} {open return_type int
+  } {
+    code {return (int)mFrame_sli->value();} {}
+  }
+  Function {setCurrentFrame(int _f)} {open return_type void
+  } {
+    code {if( _f>getEnd() ){
+		_f = getBegin();
+		if( !isLooping() ){
+			mPlaying = false;
+			mPlay_but->label("@>");
+		}
+	}
+	mFrame_sli->value( _f );
+	//mFrameCounter_inp->value( val );} {}
+  }
+  Function {getMaxFrame()} {open return_type int
+  } {
+    code {return (int)mFrame_sli->maximum();} {}
+  }
+  Function {getBegin()} {open return_type int
+  } {
+    code {return (int)mBegin_sli->value();} {}
+  }
+  Function {getEnd()} {open return_type int
+  } {
+    code {return (int)mEnd_sli->value();} {}
+  }
+  Function {getSpeed()} {open return_type double
+  } {
+    code {return (double)1.0/mSpeed_rol->value();} {}
+  }
+  Function {isLooping()} {return_type bool
+  } {
+    code {if((int)mLoop_but->value()==1) return true; else return false;} {}
+  }
+  Function {isPlaying()} {return_type bool
+  } {
+    code {return mPlaying;} {}
+  }
+  decl {bool mPlaying;} {}
+} 
