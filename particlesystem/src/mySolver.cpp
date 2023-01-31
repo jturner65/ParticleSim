@@ -87,18 +87,12 @@ namespace particleSystem{
 
 		Eigen::VectorXd tmpVecState1 = IntegrateExp_EFrcUpd(deltaT, _state, _stateDot);
 		tmpVecK1 << tmpVecState1.segment<6>(3);		//move resultant velocity and accel into xdot position
-		
-		//tmpVecK1.segment<3>(3) << _stateDot.segment<3>(3);			//move acceleration into vdot position
 
 		Eigen::VectorXd tmpVecState2 = IntegrateExp_EFrcUpd((deltaT *.5), _state, tmpVecK1);
-		tmpVecK2 << tmpVecState2.segment<6>(3);		//move resultant velocity into xdot position
-		
-		//tmpVecK2.segment<3>(3) << tmpVecK1.segment<3>(3);			//move acceleration into vdot position
+		tmpVecK2 << tmpVecState2.segment<6>(3);		//move resultant velocity and accel into xdot position
 
 		Eigen::VectorXd tmpVecState3 = IntegrateExp_EFrcUpd(deltaT, _state, tmpVecK2);
-		tmpVecK3 << tmpVecState3.segment<6>(3);		//move resultant velocity into xdot position
-		
-		//tmpVecK3.segment<3>(3) << tmpVecK2.segment<3>(3);			//move acceleration into vdot position
+		tmpVecK3 << tmpVecState3.segment<6>(3);		//move resultant velocity and accel into xdot position
 
 		res = _state.segment<6>(0) + deltaT * ((tmpVecK1 + 4 * tmpVecK2 + tmpVecK3)/6.0);
 		return res;
@@ -111,16 +105,16 @@ namespace particleSystem{
 		tmpVecK1.setZero(); tmpVecK2.setZero(); tmpVecK3.setZero();  tmpVecK4.setZero();
 
 		Eigen::VectorXd tmpVecState1 = IntegrateExp_EFrcUpd(deltaT, _state, _stateDot);
-		tmpVecK1 << tmpVecState1.segment<6>(3);		//move resultant velocity into xdot position
+		tmpVecK1 << tmpVecState1.segment<6>(3);		//move resultant velocity and accel into xdot position
 
 		Eigen::VectorXd tmpVecState2 = IntegrateExp_EFrcUpd((deltaT *.5), _state, tmpVecK1);
-		tmpVecK2 << tmpVecState2.segment<6>(3);		//move resultant velocity into xdot position
+		tmpVecK2 << tmpVecState2.segment<6>(3);		//move resultant velocity and accel into xdot position
 
 		Eigen::VectorXd tmpVecState3 = IntegrateExp_EFrcUpd((deltaT *.5), _state, tmpVecK2);
-		tmpVecK3 << tmpVecState3.segment<6>(3);		//move resultant velocity into xdot position
+		tmpVecK3 << tmpVecState3.segment<6>(3);		//move resultant velocity and accel into xdot position
 
 		Eigen::VectorXd tmpVecState4 = IntegrateExp_EFrcUpd(deltaT, _state, tmpVecK3);
-		tmpVecK4 << tmpVecState4.segment<6>(3);		//move resultant velocity into xdot position
+		tmpVecK4 << tmpVecState4.segment<6>(3);		//move resultant velocity and accel into xdot position
 		
 		//tmpVecK4.segment<3>(3) << tmpVecK3.segment<3>(3);			//move acceleration into vdot position
 
@@ -136,20 +130,20 @@ namespace particleSystem{
 		tmpVecK1.setZero(); tmpVecK2.setZero(); tmpVecK3.setZero(); tmpVecK4.setZero(); tmpVecK2a.setZero(); tmpVecK3a.setZero();
 
 		Eigen::VectorXd tmpVecState1 = IntegrateExp_EFrcUpd(deltaT, _state, _stateDot);
-		tmpVecK1 << tmpVecState1.segment<6>(3);		//move resultant velocity into xdot position
+		tmpVecK1 << tmpVecState1.segment<6>(3);		//move resultant velocity and accel into xdot position
 
 		Eigen::VectorXd tmpVecState2 = IntegrateExp_EFrcUpd((deltaT *.5), _state, tmpVecK1);
-		tmpVecK2 << tmpVecState2.segment<6>(3);		//move resultant velocity into xdot position
+		tmpVecK2 << tmpVecState2.segment<6>(3);		//move resultant velocity and accel into xdot position
 		//mult by 2 because using hard 1/2 mult of timestep
 		tmpVecK2a<< 2.0*((hafMInvLam * tmpVecK1) + (invLam * tmpVecK2));
 
 		Eigen::VectorXd tmpVecState3 = IntegrateExp_EFrcUpd((deltaT *.5), _state, tmpVecK2a);
-		tmpVecK3 << tmpVecState3.segment<6>(3);		//move resultant velocity into xdot position
+		tmpVecK3 << tmpVecState3.segment<6>(3);		//move resultant velocity and accel into xdot position
 
 		tmpVecK3a.segment<6>(0) << ((oneMlamHalf * tmpVecK2.segment<6>(0)) + (lamHalf * tmpVecK3.segment<6>(0)));
 
 		Eigen::VectorXd tmpVecState4 = IntegrateExp_EFrcUpd(deltaT, _state, tmpVecK3a);
-		tmpVecK4 << tmpVecState4.segment<6>(3);		//move resultant velocity into xdot position
+		tmpVecK4 << tmpVecState4.segment<6>(3);		//move resultant velocity and accel into xdot position
 
 		res = _state.segment<6>(0) + deltaT * ((tmpVecK1 + ((4 - lambda) * tmpVecK2) + (lambda * tmpVecK3) + tmpVecK4) / 6.0);
 
@@ -157,7 +151,7 @@ namespace particleSystem{
 
 
 	}
-	//NOT WORKING - using conj grad solver in mySystem for implicit, but this only handles springs
+	//NOT WORKING - using conj grad solver in mySystem for implicit, but that only handles springs
 	Eigen::VectorXd mySolver::IntegrateImp_EPerPart(double deltaT, const Eigen::Ref<const Eigen::VectorXd>& _state, const Eigen::Ref<const Eigen::VectorXd>& _stateDot) {
 		Eigen::VectorXd res(6);
 		res.setZero();

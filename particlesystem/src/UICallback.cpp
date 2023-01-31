@@ -10,8 +10,6 @@
 #include <vector>
 #include <fltk/file_chooser.h>
 
-using namespace std;
-
 bool gReset;
 int gCurrentScene;
 

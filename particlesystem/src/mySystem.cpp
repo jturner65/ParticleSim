@@ -122,6 +122,7 @@ namespace particleSystem{
     
     //initialize/reinitialize when all particles/constraints/colliders have been set, or when any have been added or changed
 	void mySystem::initMassSystem() {
+		//cout << "InitMassSystem : "<<this->name << endl;
 		if (flags[useMassMat]) {		calcMassAndWMat();		}
 	}
 
@@ -169,7 +170,7 @@ namespace particleSystem{
 		b.setZero(); p0.setZero(); v0.setZero(); f0.setZero();
         Eigen::MatrixXd A(numParts3, numParts3);
 		A.setZero();
-        A = M;      //mass matrix
+        A << M;      //mass matrix
         int sIdx = 0, pIdx = 0, vIdx = 0;
 		for (int i = 0; i<numParts; ++i) {     //get all positions, velocities, forces for every particle
 			p0.segment<3>(sIdx) = p[i]->getPosition();
@@ -232,25 +233,29 @@ namespace particleSystem{
         int numParts = 3*p.size(), iters=0;
 		Eigen::VectorXd v(numParts); v.setZero();
         Eigen::VectorXd res = b - A*v;
-        Eigen::VectorXd d = res;
+		Eigen::VectorXd p(res);
+		Eigen::VectorXd resOld(res);
         Eigen::VectorXd q = b;
         double epsNew = res.dot(res), epsOld, alpha, beta, eps = .000001;
         //iterative loop
         while((iters < CONJGRAD_MAXITERS) && (epsNew > eps)){
-            q = A*d;
-            alpha  = epsNew/(d.dot(q));
-            v = v + (alpha * q);
-            res = res - alpha*q;
+            q = A*p;
+            alpha  = epsNew/(p.dot(q));
+            v = v + (alpha * q);//should be alpha * p, but this blows up for some reason - maybe ks or kd is too big?
+			res = resOld - alpha*q;
             epsOld = epsNew;
 			epsNew = res.dot(res);
+			if (epsNew < .0000001) { break; }
             beta = epsNew/epsOld;
-            d = res + beta*d;
+            p = res + beta*p;
+			resOld<<res;
             iters++;
         }
         return v;
     }
 
     //move the central particle sufficiently to see if we can get this thing to move
+	//THis is totally screwed up
     void mySystem::dispCenterPart(Eigen::Vector3d& dir){
         dir[1] = 0;
         if(dir.norm()<.0001){return;}
@@ -258,13 +263,13 @@ namespace particleSystem{
         int numParts = p.size(), numSprings = spr.size();
 		Eigen::Vector3d ctrOrigPos = calcAndSetCOM(0, p.size() - 1), dispVec;
         std::shared_ptr<myParticle> ctr = p[numParts-1];
-        Eigen::Vector3d newPos = ctrOrigPos + .01*dir;
+        Eigen::Vector3d newPosDir = ctrOrigPos + .01*dir;
         
         //find particle closest to this one
         double minDist = 99999, d;
         int minIdx = -1;
         for(int i=0; i<numParts-2; ++i){ 
-            d = (newPos - p[i]->getPosition()).norm();
+            d = (newPosDir - p[i]->getPosition()).norm();
             if(d<minDist){             minDist = d;             minIdx  = i;          }
         }
         dispVec = p[minIdx]->getPosition() - ctrOrigPos;

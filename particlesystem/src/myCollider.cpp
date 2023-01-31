@@ -1,7 +1,6 @@
 #include "..\include\myCollider.h"
 #include <memory>
 
-using namespace std;
 namespace particleSystem{
 	unsigned int myCollider::ID_gen = 0;
 

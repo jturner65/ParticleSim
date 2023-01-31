@@ -14,8 +14,6 @@
 #include "myFluidBox.h"
 #include "mySpring.h"
 
-using namespace std;
-
 namespace particleSystem{
 	//should include structure to hold particles, forces, time
 	class mySystem {

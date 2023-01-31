@@ -27,7 +27,6 @@ extern bool gReset;
 
 ParticleSystemUI* mUI;
 
-using namespace std;
 using namespace particleSystem;
 
 void onTimer(void *){

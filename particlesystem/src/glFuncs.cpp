@@ -5,7 +5,6 @@
 #include <fltk/Style.h>
 #endif
 
-using namespace std;
 
 bool ScreenShot(int w, int h, char *fname, bool _antialias) {
 	// make sure OpenGL context is current
@@ -66,7 +65,7 @@ bool ScreenShot(int w, int h, char *fname, bool _antialias) {
 
 	delete []pixels;
 
-	cout << fname << " generated" << endl;
+	std::cout << fname << " generated" << std::endl;
 	return true;
 }
 

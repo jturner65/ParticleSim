@@ -9,8 +9,6 @@
 #include "myParticle.h"
 #include <memory>
 
-using namespace std;
-
 namespace particleSystem{
 	class myParticle;
 	class mySystem;

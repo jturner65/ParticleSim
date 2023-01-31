@@ -34,7 +34,6 @@ namespace particleSystem{
 }
 
 using namespace particleSystem;
-using namespace std;
 
 class WindowGLDisplay : public fltk::GlWindow
 {
@@ -44,14 +43,14 @@ public:
 	bool mAntiAlias;
 	//virtual functions that replace GlWindow
 	void draw();
-	int FindPartIDXByID(vector<std::shared_ptr<myParticle>>& partAra, int id);
-	int FindCnstrntIDXByID(vector<std::shared_ptr<myConstraint>>& cnstrntAra, int id);
-	void drawFluidVel( shared_ptr<mySystem> system);
-	void drawParts(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, double calc_partSize, bool draw1stPartBlue);
+	int FindPartIDXByID(std::vector<std::shared_ptr<myParticle>>& partAra, int id);
+	int FindCnstrntIDXByID(std::vector<std::shared_ptr<myConstraint>>& cnstrntAra, int id);
+	void drawFluidVel(std::shared_ptr<mySystem> system);
+	void drawParts(std::vector<std::shared_ptr<particleSystem::myParticle>>& partAra, double calc_partSize, bool draw1stPartBlue);
 	void drawPartsCOM(double calc_partSize);
-	//void drawCnstrntLine(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra, vector<vector<int>>& linePointIDS, bool bindCnstr, double cnstrR);	
-	void drawCnstrnt(vector<std::shared_ptr<particleSystem::myParticle>>& partAra, vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra);
-	void drawSpring(vector<std::shared_ptr<particleSystem::mySpring>>& springAra);
+	//void drawCnstrntLine(std::vector<std::shared_ptr<particleSystem::myParticle>>& partAra, std::vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra, std::vector<std::vector<int>>& linePointIDS, bool bindCnstr, double cnstrR);	
+	void drawCnstrnt(std::vector<std::shared_ptr<particleSystem::myParticle>>& partAra, std::vector<std::shared_ptr<particleSystem::myConstraint>>& cnstrntAra);
+	void drawSpring(std::vector<std::shared_ptr<particleSystem::mySpring>>& springAra);
 	void render();
 	int handle(int event);
 	void refresh();

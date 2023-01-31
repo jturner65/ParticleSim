@@ -12,7 +12,6 @@
 #include "myConstraint.h"
 #include "mySpring.h"
 using namespace particleSystem;
-using namespace std;
 
 extern int curSystemIDX;
 
@@ -155,9 +154,11 @@ void MyParticleWorld::buildRhTrHdrn(Eigen::Vector3d& sLoc, int curSystemIDX) {
 	for (unsigned int i = 0; i < MyParticleWorld::numRTparts; ++i) {
 		//systems[curSystemIDX]->p.push_back(std::make_shared<myParticle>(1, MyParticleWorld::rt_crnrPts[i] - Eigen::Vector3d(0, 1, 15), Eigen::Vector3d(0, 0, 0),RK4_G));
 		systems[curSystemIDX]->addParticle(1.0, MyParticleWorld::rt_crnrPts[i] - Eigen::Vector3d(0, 1, 15), Eigen::Vector3d(0, -2, 0), RK4_G);
-		systems[curSystemIDX]->p.back()->setOrigMass(((i == MyParticleWorld::numRTparts - 1)) ? 100 : 1);     //only last one is heavier
 		//systems[curSystemIDX]->p.back()->setVelocity(Eigen::Vector3d(0, -2, 0));          //some initial velocity
 	}
+	systems[curSystemIDX]->p.back()->setOrigMass(100);     //only last one is heavier
+	//root particle
+	auto rootP = systems[curSystemIDX]->p.back();
 	//constraints
 	for (int i = 0; i<MyParticleWorld::numRTEdges; ++i) {
 		systems[curSystemIDX]->buildAndSetCnstrnts(MyParticleWorld::rt_edgePtIdxs[i][0], MyParticleWorld::rt_edgePtIdxs[i][1], -1, systems[curSystemIDX]->p[MyParticleWorld::rt_edgePtIdxs[i][1]]->getPosition());
@@ -171,10 +172,10 @@ void MyParticleWorld::buildRhTrHdrn(Eigen::Vector3d& sLoc, int curSystemIDX) {
 		//  buildAndSetNonPathCnstrntVals(i,numRTMsclSpr, p[i]->position[0]);
 		////make springs from last particle to all others here
 		ss.str("");
-		ss << "RT Spring_" << i << "_a_" << systems[curSystemIDX]->p[i]->ID << "__b_" << systems[curSystemIDX]->p[MyParticleWorld::numRTparts - 1]->ID;
+		ss << "RT Spring_" << i << "_a_" << systems[curSystemIDX]->p[i]->ID << "__b_" << rootP->ID;
 		//cout<<ss.str()<<endl;
-		double rLen = (systems[curSystemIDX]->p[i]->getPosition() - systems[curSystemIDX]->p[MyParticleWorld::numRTparts - 1]->getPosition()).norm();
-		systems[curSystemIDX]->spr.push_back(std::make_shared<mySpring>(ss.str(), systems[curSystemIDX]->p[i], systems[curSystemIDX]->p[MyParticleWorld::numRTparts - 1], ks, kd, rLen));
+		double rLen = (systems[curSystemIDX]->p[i]->getPosition() - rootP->getPosition()).norm();
+		systems[curSystemIDX]->spr.push_back(std::make_shared<mySpring>(ss.str(), systems[curSystemIDX]->p[i], rootP, ks, kd, rLen));
 	}
 	//collider ground
 	systems[curSystemIDX]->buildGndCollider(.4, .9, 500, -5, 500, std::string("Ground_MassSpring"), Eigen::Vector3d(0, -5, -12));// , Eigen::Vector3d(0, -8, -12));
@@ -525,6 +526,7 @@ void MyParticleWorld::handlePause(int curSystemIDX) {
 		systemParticleHolder[curSystemIDX].push_back(sys->p);
 		systemConstraintHolder[curSystemIDX].push_back(sys->c);
         if((curSystemIDX == MSPR_MTN_PROJ) || (curSystemIDX == MSPR_MTN_PRO2)){            systemSpringHolder[curSystemIDX].push_back(sys->spr);}
+		//cout << "init mass system from scene modded" << endl;
 		sys->initMassSystem();				//call after particles added to/removed from system - recalcs mass matrix
 	}
 

@@ -9,8 +9,6 @@
 #include "myParticle.h"
 #include "myForce.h"
 
-using namespace std;
-
 namespace particleSystem{
 
 	class mySpring {

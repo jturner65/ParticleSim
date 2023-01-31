@@ -8,6 +8,8 @@
 #include <Eigen/Dense>
 #include "ControlPanel.h"
 
+
+using namespace particleSystem;
 namespace particleSystem{
     class myParticle;
     class myForce;
@@ -18,9 +20,6 @@ namespace particleSystem{
     class myConstraint;
 }
 
-
-using namespace std;
-using namespace particleSystem;
 
 class MyParticleWorld{
 	public:

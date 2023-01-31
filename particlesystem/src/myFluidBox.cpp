@@ -2,7 +2,6 @@
 #include "..\include\myfluidBox.h"
 #include <Eigen/Dense>
 
-using namespace std;
 
 namespace particleSystem{
 	unsigned int myFluidBox::ID_gen = 0;
