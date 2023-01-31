@@ -20,13 +20,13 @@
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <CLRSupport>false</CLRSupport>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <CharacterSet>MultiByte</CharacterSet>
     <CLRSupport>false</CLRSupport>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -54,7 +54,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>C:\Golems\include;include;..\external\vl\include;..\particlesystem\include;..\external\fltk-2.0.x-r5966;..\external\glut;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>include;..\external\vl\include;..\particlesystem\include;..\external\fltk-2.0.x-r5966;..\external\glut;C:\msys64\mingw64\include\eigen3;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>FL_SHARED;WIN32;_DEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -66,7 +66,7 @@
     <Link>
       <AdditionalDependencies>fltk2dlld.lib;fltkdlld_gl.lib;fltk2_gld.lib;glu32.lib;opengl32.lib;comctl32.lib;wsock32.lib;vld.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <AdditionalLibraryDirectories>C:/Golems/lib;C:/Golems/lib/$(Configuration);..\external\vl\lib;..\external\fltk-2.0.x-r5966\lib;..\external\glut;..\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\external\vl\lib;..\external\fltk-2.0.x-r5966\lib;..\external\glut;..\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AssemblyDebug>true</AssemblyDebug>
     </Link>
@@ -78,7 +78,7 @@
       <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <OmitFramePointers>false</OmitFramePointers>
       <WholeProgramOptimization>false</WholeProgramOptimization>
-      <AdditionalIncludeDirectories>C:\Golems\include;..\bin;include;..\external\vl\include;..\particlesystem\include;..\external\fltk-2.0.x-r5966;..\external\glut;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\bin;include;..\external\vl\include;..\particlesystem\include;..\external\fltk-2.0.x-r5966;..\external\glut;C:\msys64\mingw64\include\eigen3;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>FL_SHARED;WIN32;NDEBUG;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <MinimalRebuild>false</MinimalRebuild>
@@ -93,7 +93,7 @@
     <Link>
       <AdditionalDependencies>fltkdll_gl.lib;fltk2dll.lib;fltk2_gl.lib;glu32.lib;glut32.lib;opengl32.lib;comctl32.lib;wsock32.lib;vl.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>Release\$(ProjectName).exe</OutputFile>
-      <AdditionalLibraryDirectories>C:/Golems/lib;C:/Golems/lib/$(Configuration);..\bin;..\external\vl\lib;..\external\fltk-2.0.x-r5966\lib;..\external\glut;..\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\bin;..\external\vl\lib;..\external\fltk-2.0.x-r5966\lib;..\external\glut;..\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -145,9 +145,7 @@
     <ClInclude Include="include\WindowGLDisplay.h" />
   </ItemGroup>
   <ItemGroup>
-    <Natvis Include="C:\Golems\eigen.natvis">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </Natvis>
+    <Natvis Include="src\Eigen.natvis" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
