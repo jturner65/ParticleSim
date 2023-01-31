@@ -9,3 +9,6 @@
 /particlesystem/*.opendb
 /particlesystem/Debug
 /particlesystem/Release
+
+/particlesystem/.vs
+
